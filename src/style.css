@@ -1,0 +1,882 @@
+/* ============================================================
+   Themis — Base Styles & Theme Variables
+   ============================================================ */
+
+/* --- CSS Custom Properties (Dark = default) --- */
+:root,
+[data-theme='dark'] {
+  --bg-primary: #0f0f13;
+  --bg-secondary: #1a1a24;
+  --bg-surface: #23233a;
+  --text-primary: #e8e8f0;
+  --text-secondary: #a0a0b8;
+  --text-muted: #6a6a82;
+  --accent: #7c6df0;
+  --accent-hover: #9486f7;
+  --border: #2e2e45;
+  --shadow: rgba(0, 0, 0, 0.4);
+  --font-body: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+  --radius: 6px;
+  --btn-radius: 6px;
+}
+
+[data-theme='light'] {
+  --bg-primary: #f5f5f8;
+  --bg-secondary: #ffffff;
+  --bg-surface: #eeeef3;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a62;
+  --text-muted: #8888a0;
+  --accent: #5b4ec7;
+  --accent-hover: #7c6df0;
+  --border: #d0d0de;
+  --shadow: rgba(0, 0, 0, 0.08);
+}
+
+/* --- Cyber Theme --- */
+[data-theme='cyber'] {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-surface: #1a2332;
+  --text-primary: #d4f0ff;
+  --text-secondary: #7eb8d8;
+  --text-muted: #4a7a96;
+  --accent: #00d4aa;
+  --accent-hover: #33e0be;
+  --border: #1e3a4f;
+  --shadow: rgba(0, 212, 170, 0.1);
+  --font-body: 'SF Mono', 'Consolas', 'Monaco', 'Hiragino Kaku Gothic ProN', monospace;
+  --radius: 2px;
+  --btn-radius: 2px;
+}
+
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease, font-family 0.3s ease;
+}
+
+/* --- App Layout --- */
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  transition: max-width 0.3s ease;
+}
+
+#app.app-wide {
+  max-width: 100%;
+}
+
+/* --- Header --- */
+.app-header {
+  position: relative;
+  text-align: center;
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.app-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+/* --- Theme Switcher --- */
+.theme-switcher {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.theme-btn {
+  padding: 0.35rem 0.65rem;
+  background: var(--bg-surface);
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.theme-btn:last-child {
+  border-right: none;
+}
+
+.theme-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.theme-btn.active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* --- Main Content --- */
+.app-main {
+  min-height: 200px;
+}
+
+.placeholder-text {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 4rem 1rem;
+  font-size: 0.95rem;
+}
+
+/* --- Sections --- */
+.section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
+.subsection {
+  margin-bottom: 1.5rem;
+}
+
+.subsection-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.subsection-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+/* --- Text Helpers --- */
+.text-muted {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* --- Forms --- */
+.input-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.input-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.input-textarea-paste {
+  font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+  font-size: 0.82rem;
+  tab-size: 16;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.form-parts-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+}
+
+.form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.form-label-short {
+  flex: 0 0 140px;
+}
+
+.form-label-part {
+  flex: 1;
+  font-size: 0.78rem;
+}
+
+.form-input,
+.form-select {
+  padding: 0.5rem 0.6rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-input-short {
+  max-width: 120px;
+}
+
+/* --- Buttons --- */
+.btn {
+  display: inline-block;
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: var(--btn-radius);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  margin-top: 0.75rem;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-danger {
+  background: #c0392b;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #e74c3c;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-icon:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* --- Tabs --- */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.tab-btn {
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-bottom: -2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-content.hidden {
+  display: none;
+}
+
+/* --- Tag Input --- */
+.tag-input-wrap {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  cursor: text;
+  transition: border-color 0.2s ease;
+}
+
+.tag-input-wrap:focus-within {
+  border-color: var(--accent);
+}
+
+.tag-input-chips {
+  display: contents;
+}
+
+.tag-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.25rem 0.4rem;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.tag-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* --- Chips --- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+}
+
+.chip-removable {
+  padding-right: 0.3rem;
+}
+
+.chip-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  padding: 0 0.2rem;
+  line-height: 1;
+  border-radius: 50%;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.chip-delete:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+/* --- Player Chips (legacy, used in other contexts) --- */
+.player-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  min-height: 1.5rem;
+}
+
+/* --- Band Table --- */
+.band-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.band-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.band-table th,
+.band-table td {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.band-table th {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.band-table td {
+  background: var(--bg-secondary);
+}
+
+.band-table tbody tr:hover td {
+  background: var(--bg-surface);
+}
+
+/* --- Paste Config --- */
+.paste-config {
+  margin-bottom: 0.75rem;
+}
+
+/* --- Error / Success Boxes --- */
+.paste-error-box {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: var(--radius);
+}
+
+.error-line {
+  font-size: 0.82rem;
+  color: #e74c3c;
+  margin-bottom: 0.3rem;
+}
+
+.error-line:last-child {
+  margin-bottom: 0;
+}
+
+.paste-success-box {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: #2ecc71;
+}
+
+/* --- Accent Button --- */
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-accent:hover {
+  background: var(--accent-hover);
+}
+
+/* --- Secondary Button --- */
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+/* --- Step Navigation --- */
+.step-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-title-inline {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* --- Cost Grid --- */
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.cost-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.cost-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cost-weight-input {
+  width: 60px;
+  text-align: center;
+}
+
+/* --- Rule Builder --- */
+.rule-builder {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.rule-config-area {
+  margin: 0.75rem 0;
+}
+
+.form-label-mid {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* --- Rules List --- */
+.rules-list {
+  margin-top: 0.75rem;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.4rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.rule-item:hover {
+  border-color: var(--accent);
+  background: var(--bg-surface);
+}
+
+.rule-text {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.rule-edit-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0;
+  margin-right: 0.5rem;
+  transition: opacity 0.2s ease;
+}
+
+.rule-item:hover .rule-edit-hint {
+  opacity: 1;
+}
+
+.btn-delete-rule {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-muted);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-delete-rule:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+/* --- Result Cards (Step 3) --- */
+.result-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  transition: border-color 0.2s ease;
+}
+
+.result-card:hover {
+  border-color: var(--accent);
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.result-rank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.result-cost {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.btn-select-result {
+  padding: 0.4rem 1rem;
+  font-size: 0.82rem;
+}
+
+.result-table {
+  font-size: 0.78rem;
+}
+
+/* --- Error Box --- */
+.error-box {
+  padding: 1.5rem;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: var(--radius);
+  color: #e74c3c;
+  text-align: center;
+}
+
+.error-box p {
+  margin-bottom: 0.5rem;
+}
+
+.error-box p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Timing Form (Step 4) --- */
+.timing-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.timing-form .form-label {
+  flex: 0 0 160px;
+}
+
+.timing-form .btn {
+  margin-top: 0;
+  align-self: flex-end;
+}
+
+/* --- Timestamp Table --- */
+.timestamp-table .timestamp-cell {
+  font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* --- Break Insertion (Step 5) --- */
+.break-insert-row td {
+  padding: 0 !important;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-top: none;
+  border-bottom: none;
+  background: transparent !important;
+}
+
+.btn-add-break {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.15rem 0;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.final-table tbody:hover .btn-add-break {
+  opacity: 0.5;
+}
+
+.btn-add-break:hover {
+  opacity: 1 !important;
+  color: var(--accent);
+  background: var(--bg-surface);
+}
+
+.break-row td {
+  background: var(--bg-surface) !important;
+  border-left: 3px solid var(--accent) !important;
+  padding: 0.3rem 0.6rem !important;
+}
+
+.break-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.break-label {
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.btn-remove-break {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.btn-remove-break:hover {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+}
+
+.break-input-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+}
+
+.break-input-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.break-duration-input {
+  width: 80px;
+  text-align: center;
+}
+
+.break-input-row .btn {
+  margin-top: 0;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+/* --- Copy Button States --- */
+.btn-copied {
+  background: #27ae60 !important;
+}
+
+/* --- Final Table --- */
+.final-table {
+  font-size: 0.85rem;
+}
+
+/* --- Rule Error Message --- */
+.rule-error-msg {
+  font-size: 0.82rem;
+  color: #e74c3c;
+  margin-top: 0.5rem;
+  min-height: 0;
+}
+
+/* --- Clear Confirm Bar --- */
+.clear-confirm-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clear-confirm-text {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* --- Utility --- */
+.hidden {
+  display: none !important;
+}
