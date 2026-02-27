@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="eye7" x1="0" y1="0" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#0c8599"/>
+      <stop offset="100%" stop-color="#3bc9db"/>
+    </linearGradient>
+    <radialGradient id="iris7" cx="0.4" cy="0.4" r="0.6">
+      <stop offset="0%" stop-color="#66d9e8"/>
+      <stop offset="100%" stop-color="#0c8599"/>
+    </radialGradient>
+    <linearGradient id="diamond7" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#15aabf"/>
+      <stop offset="100%" stop-color="#99e9f2"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="12" fill="#04181a"/>
+  <ellipse cx="32" cy="32" rx="26" ry="14" fill="none" stroke="url(#eye7)" stroke-width="2"/>
+  <circle cx="32" cy="32" r="10" fill="url(#iris7)" opacity="0.2" stroke="url(#eye7)" stroke-width="1.5"/>
+  <polygon points="32,24 40,32 32,40 24,32" fill="url(#diamond7)"/>
+  <polygon points="32,28 36,32 32,36 28,32" fill="#c5f6fa"/>
+  <circle cx="28" cy="28" r="2" fill="#e3fafc" opacity="0.6"/>
+</svg>

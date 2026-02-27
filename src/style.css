@@ -2,19 +2,19 @@
    Themis — Base Styles & Theme Variables
    ============================================================ */
 
-/* --- CSS Custom Properties (Dark = default, Midnight palette) --- */
+/* --- CSS Custom Properties (Dark = default, Cyan/Teal palette) --- */
 :root,
 [data-theme='dark'] {
-  --bg-primary: #0f1117;
-  --bg-secondary: #181a24;
-  --bg-surface: #20222e;
-  --text-primary: #e0e2ea;
-  --text-secondary: #8b8fa3;
-  --text-muted: #5a5e72;
-  --accent: #6c8aff;
-  --accent-hover: #8ba3ff;
-  --accent-dim: rgba(108, 138, 255, 0.08);
-  --border: #2a2d3a;
+  --bg-primary: #0a1214;
+  --bg-secondary: #0f1a1e;
+  --bg-surface: #162428;
+  --text-primary: #d8eaee;
+  --text-secondary: #7a9aa6;
+  --text-muted: #4a6a74;
+  --accent: #15aabf;
+  --accent-hover: #3bc9db;
+  --accent-dim: rgba(21, 170, 191, 0.08);
+  --border: #1e3038;
   --shadow: rgba(0, 0, 0, 0.4);
   --danger: #ff6b6b;
   --danger-border: rgba(255, 107, 107, 0.3);
@@ -24,18 +24,18 @@
   --btn-radius: 6px;
 }
 
-/* --- Light Theme (Minimal palette) --- */
+/* --- Light Theme (Teal-tinted minimal palette) --- */
 [data-theme='light'] {
-  --bg-primary: #fafafa;
+  --bg-primary: #f6fafa;
   --bg-secondary: #ffffff;
-  --bg-surface: #f0f0f0;
-  --text-primary: #1a1a1a;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --accent: #111111;
-  --accent-hover: #333333;
-  --accent-dim: rgba(0, 0, 0, 0.03);
-  --border: #e5e5e5;
+  --bg-surface: #eaf4f4;
+  --text-primary: #1a2a2a;
+  --text-secondary: #506666;
+  --text-muted: #8a9e9e;
+  --accent: #0c8599;
+  --accent-hover: #0a7085;
+  --accent-dim: rgba(12, 133, 153, 0.05);
+  --border: #d8e8e8;
   --shadow: rgba(0, 0, 0, 0.06);
   --danger: #cc0000;
   --danger-border: #cc0000;
