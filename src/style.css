@@ -2,20 +2,20 @@
    Themis — Base Styles & Theme Variables
    ============================================================ */
 
-/* --- CSS Custom Properties (Dark = default, Cyan/Teal palette) --- */
+/* --- CSS Custom Properties (Dark = default, Cool Grey palette) --- */
 :root,
 [data-theme='dark'] {
-  --bg-primary: #0a1214;
-  --bg-secondary: #0f1a1e;
-  --bg-surface: #162428;
-  --text-primary: #d8eaee;
-  --text-secondary: #7a9aa6;
-  --text-muted: #4a6a74;
-  --accent: #15aabf;
-  --accent-hover: #3bc9db;
-  --accent-dim: rgba(21, 170, 191, 0.08);
-  --border: #1e3038;
-  --shadow: rgba(0, 0, 0, 0.4);
+  --bg-primary: #101114;
+  --bg-secondary: #18191e;
+  --bg-surface: #212329;
+  --text-primary: #e3e4ea;
+  --text-secondary: #9496a6;
+  --text-muted: #5c5e6e;
+  --accent: #8a9bcc;
+  --accent-hover: #a8b6dd;
+  --accent-dim: rgba(138, 155, 204, 0.08);
+  --border: #2a2c36;
+  --shadow: rgba(0, 0, 0, 0.5);
   --danger: #ff6b6b;
   --danger-border: rgba(255, 107, 107, 0.3);
   --danger-hover-bg: rgba(255, 107, 107, 0.1);
@@ -24,18 +24,18 @@
   --btn-radius: 6px;
 }
 
-/* --- Light Theme (Teal-tinted minimal palette) --- */
+/* --- Light Theme (Cool Grey palette) --- */
 [data-theme='light'] {
-  --bg-primary: #f6fafa;
+  --bg-primary: #f7f7fa;
   --bg-secondary: #ffffff;
-  --bg-surface: #eaf4f4;
-  --text-primary: #1a2a2a;
-  --text-secondary: #506666;
-  --text-muted: #8a9e9e;
-  --accent: #0c8599;
-  --accent-hover: #0a7085;
-  --accent-dim: rgba(12, 133, 153, 0.05);
-  --border: #d8e8e8;
+  --bg-surface: #ededf2;
+  --text-primary: #1a1b22;
+  --text-secondary: #4e5064;
+  --text-muted: #9294a4;
+  --accent: #5568a0;
+  --accent-hover: #44558a;
+  --accent-dim: rgba(85, 104, 160, 0.05);
+  --border: #d8d9e2;
   --shadow: rgba(0, 0, 0, 0.06);
   --danger: #cc0000;
   --danger-border: #cc0000;
@@ -74,6 +74,18 @@ body {
   max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+}
+
+/* --- Page Logo (top-left) --- */
+.page-logo {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  width: 72px;
+  height: 72px;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 100;
 }
 
 /* --- Header --- */
