@@ -12,6 +12,7 @@ import { saveState, loadState } from './state.js';
 
 const STATE_COST_WEIGHTS = 'costWeights';
 const STATE_RULES = 'rules';
+const STATE_DISTINGUISH_GUITAR = 'distinguishGuitar';
 
 const PART_LABELS = ['Vo.', 'L.Gt', 'B.Gt', 'Ba.', 'Dr.', 'Key.'];
 const DEFAULT_WEIGHTS = [0, 1, 1, 1, 0, 1];
@@ -32,11 +33,13 @@ const RULE_TYPES = {
 export function initConditions(container, players, bands, onBack) {
   const savedWeights = loadState(STATE_COST_WEIGHTS, [...DEFAULT_WEIGHTS]);
   const savedRules = loadState(STATE_RULES, []);
+  const savedDistinguishGuitar = loadState(STATE_DISTINGUISH_GUITAR, true);
 
   let costWeights = savedWeights.length === 6 ? savedWeights : [...DEFAULT_WEIGHTS];
   let rules = savedRules;
+  let distinguishGuitar = savedDistinguishGuitar;
 
-  container.innerHTML = buildConditionsHTML(costWeights, bands, rules);
+  container.innerHTML = buildConditionsHTML(costWeights, bands, rules, distinguishGuitar);
 
   // --- Back button ---
   container.querySelector('#back-to-step1').addEventListener('click', onBack);
@@ -50,6 +53,13 @@ export function initConditions(container, players, bands, onBack) {
       input.value = costWeights[i];
       saveState(STATE_COST_WEIGHTS, costWeights);
     });
+  });
+
+  // --- Distinguish Guitar toggle ---
+  const guitarToggle = container.querySelector('#distinguish-guitar');
+  guitarToggle.addEventListener('change', () => {
+    distinguishGuitar = guitarToggle.checked;
+    saveState(STATE_DISTINGUISH_GUITAR, distinguishGuitar);
   });
 
   // --- Add Rule ---
@@ -116,7 +126,7 @@ export function initConditions(container, players, bands, onBack) {
   proceedBtn.addEventListener('click', () => {
     // Dispatch custom event with conditions data
     const event = new CustomEvent('themis:generate', {
-      detail: { costWeights, rules },
+      detail: { costWeights, rules, distinguishGuitar },
     });
     document.dispatchEvent(event);
   });
@@ -135,7 +145,7 @@ export function getSavedConditions() {
 
 // ─── HTML Template ────────────────────────────────────────────────
 
-function buildConditionsHTML(costWeights, bands, rules) {
+function buildConditionsHTML(costWeights, bands, rules, distinguishGuitar) {
   return `
     <section class="section">
       <div class="step-nav">
@@ -159,6 +169,19 @@ function buildConditionsHTML(costWeights, bands, rules) {
           `,
           ).join('')}
         </div>
+      </div>
+
+      <div class="subsection">
+        <h3 class="subsection-title">ギター区別</h3>
+        <label class="toggle-label">
+          <input type="checkbox" id="distinguish-guitar" class="toggle-checkbox" ${distinguishGuitar ? 'checked' : ''} />
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">リードギターとバッキングギターを区別する</span>
+        </label>
+        <p class="subsection-desc toggle-desc">
+          <strong>ON:</strong> L.Gt と B.Gt は別々のパートとして扱います。同じ人がリードギターからバッキングギターに移動した場合、転換コストが発生します。<br>
+          <strong>OFF:</strong> L.Gt と B.Gt を区別しません。同じ人がどちらのギターパートを担当しても転換コストが発生しません（例: バンドAではリードギター、バンドBではバッキングギターでもコスト0）。
+        </p>
       </div>
 
       <div class="subsection">

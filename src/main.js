@@ -56,7 +56,7 @@ function showStep2() {
   initConditions(mainEl, players, bands, showStep1);
 }
 
-function showStep3(costWeights, rules) {
+function showStep3(costWeights, rules, distinguishGuitar) {
   const bands = loadState('bands', []);
   lastBands = bands;
   lastCostWeights = costWeights;
@@ -67,7 +67,7 @@ function showStep3(costWeights, rules) {
   // Run the optimizer
   try {
     lastResults = solve(bands, {
-      distinguishGuitar: true,
+      distinguishGuitar,
       freeLeave: false,
       costWeights,
       constraints,
@@ -122,8 +122,8 @@ function showStep5(schedule) {
 
 // Listen for generate event from conditions UI
 document.addEventListener('themis:generate', (e) => {
-  const { costWeights, rules } = e.detail;
-  showStep3(costWeights, rules);
+  const { costWeights, rules, distinguishGuitar } = e.detail;
+  showStep3(costWeights, rules, distinguishGuitar);
 });
 
 // Listen for schedule ready event (alternative entry to Step 5)
