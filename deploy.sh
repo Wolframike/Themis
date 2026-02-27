@@ -13,7 +13,7 @@ npm run build
 
 echo "==> Committing..."
 git add -A
-git commit -m "$MSG"
+git diff --cached --quiet && echo "(nothing to commit)" || git commit -m "$MSG"
 
 echo "==> Pushing to origin/main..."
 git push origin main
