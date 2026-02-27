@@ -23,10 +23,6 @@ const STATE_BREAKS = 'breaks';
 export function initFinalExport(container, schedule, timing, onBack, bands) {
   const minUnit = timing.minUnit || 5;
 
-  // Expand layout to full width for the wide table
-  const appEl = document.getElementById('app');
-  if (appEl) appEl.classList.add('app-wide');
-
   // Load saved breaks or start empty
   let breaks = loadState(STATE_BREAKS, []);
   // Validate saved breaks against current schedule length
@@ -42,7 +38,6 @@ export function initFinalExport(container, schedule, timing, onBack, bands) {
 
     // Back button
     container.querySelector('#back-to-timing').addEventListener('click', () => {
-      if (appEl) appEl.classList.remove('app-wide');
       onBack();
     });
 
@@ -86,9 +81,9 @@ export function initFinalExport(container, schedule, timing, onBack, bands) {
   }
 
   function showBreakInput(anchorBtn, afterIdx, unit) {
-    // Replace the "+" button with an inline input
-    const wrapper = anchorBtn.closest('.break-insert-row');
-    wrapper.innerHTML = `
+    // Replace the "+" button content inside the <td>, keeping valid table HTML
+    const td = anchorBtn.closest('td');
+    td.innerHTML = `
       <div class="break-input-row">
         <label class="break-input-label">
           休憩時間（${unit}分単位）
@@ -99,9 +94,9 @@ export function initFinalExport(container, schedule, timing, onBack, bands) {
       </div>
     `;
 
-    const input = wrapper.querySelector('.break-duration-input');
-    const confirmBtn = wrapper.querySelector('.btn-confirm-break');
-    const cancelBtn = wrapper.querySelector('.btn-cancel-break');
+    const input = td.querySelector('.break-duration-input');
+    const confirmBtn = td.querySelector('.btn-confirm-break');
+    const cancelBtn = td.querySelector('.btn-cancel-break');
 
     confirmBtn.addEventListener('click', () => {
       const duration = parseInt(input.value, 10);

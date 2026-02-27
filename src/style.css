@@ -2,53 +2,48 @@
    Themis — Base Styles & Theme Variables
    ============================================================ */
 
-/* --- CSS Custom Properties (Dark = default) --- */
+/* --- CSS Custom Properties (Dark = default, Midnight palette) --- */
 :root,
 [data-theme='dark'] {
-  --bg-primary: #0f0f13;
-  --bg-secondary: #1a1a24;
-  --bg-surface: #23233a;
-  --text-primary: #e8e8f0;
-  --text-secondary: #a0a0b8;
-  --text-muted: #6a6a82;
-  --accent: #7c6df0;
-  --accent-hover: #9486f7;
-  --border: #2e2e45;
+  --bg-primary: #0f1117;
+  --bg-secondary: #181a24;
+  --bg-surface: #20222e;
+  --text-primary: #e0e2ea;
+  --text-secondary: #8b8fa3;
+  --text-muted: #5a5e72;
+  --accent: #6c8aff;
+  --accent-hover: #8ba3ff;
+  --accent-dim: rgba(108, 138, 255, 0.08);
+  --border: #2a2d3a;
   --shadow: rgba(0, 0, 0, 0.4);
-  --font-body: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+  --danger: #ff6b6b;
+  --danger-border: rgba(255, 107, 107, 0.3);
+  --danger-hover-bg: rgba(255, 107, 107, 0.1);
+  --font-body: 'Inter', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
   --radius: 6px;
   --btn-radius: 6px;
 }
 
+/* --- Light Theme (Minimal palette) --- */
 [data-theme='light'] {
-  --bg-primary: #f5f5f8;
+  --bg-primary: #fafafa;
   --bg-secondary: #ffffff;
-  --bg-surface: #eeeef3;
-  --text-primary: #1a1a2e;
-  --text-secondary: #4a4a62;
-  --text-muted: #8888a0;
-  --accent: #5b4ec7;
-  --accent-hover: #7c6df0;
-  --border: #d0d0de;
-  --shadow: rgba(0, 0, 0, 0.08);
+  --bg-surface: #f0f0f0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --accent: #111111;
+  --accent-hover: #333333;
+  --accent-dim: rgba(0, 0, 0, 0.03);
+  --border: #e5e5e5;
+  --shadow: rgba(0, 0, 0, 0.06);
+  --danger: #cc0000;
+  --danger-border: #cc0000;
+  --danger-hover-bg: #cc0000;
+  --radius: 3px;
+  --btn-radius: 3px;
 }
 
-/* --- Cyber Theme --- */
-[data-theme='cyber'] {
-  --bg-primary: #0a0e17;
-  --bg-secondary: #111827;
-  --bg-surface: #1a2332;
-  --text-primary: #d4f0ff;
-  --text-secondary: #7eb8d8;
-  --text-muted: #4a7a96;
-  --accent: #00d4aa;
-  --accent-hover: #33e0be;
-  --border: #1e3a4f;
-  --shadow: rgba(0, 212, 170, 0.1);
-  --font-body: 'SF Mono', 'Consolas', 'Monaco', 'Hiragino Kaku Gothic ProN', monospace;
-  --radius: 2px;
-  --btn-radius: 2px;
-}
 
 /* --- Reset & Base --- */
 *,
@@ -76,14 +71,9 @@ body {
 
 /* --- App Layout --- */
 #app {
-  max-width: 960px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
-  transition: max-width 0.3s ease;
-}
-
-#app.app-wide {
-  max-width: 100%;
 }
 
 /* --- Header --- */
@@ -103,9 +93,10 @@ body {
 }
 
 .app-subtitle {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-top: 0.25rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 0.15rem;
 }
 
 /* --- Theme Switcher --- */
@@ -167,12 +158,14 @@ body {
 }
 
 .section-title {
-  font-size: 1.3rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  color: var(--accent);
-  margin-bottom: 1.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 1px solid var(--border);
 }
 
 .subsection {
@@ -229,12 +222,35 @@ body {
   tab-size: 16;
   white-space: pre;
   overflow-x: auto;
+  overflow-y: hidden;
+  resize: none;
 }
 
 .form-row {
   display: flex;
   gap: 1rem;
   margin-bottom: 0.75rem;
+}
+
+.form-row-sentence {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.form-row-sentence .form-select,
+.form-row-sentence .form-input {
+  font-size: 0.82rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.form-row-sentence .form-input-narrow {
+  width: 55px;
+  text-align: center;
 }
 
 .form-parts-row {
@@ -286,33 +302,37 @@ body {
 /* --- Buttons --- */
 .btn {
   display: inline-block;
-  padding: 0.55rem 1.2rem;
-  border: none;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid transparent;
   border-radius: var(--btn-radius);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .btn-primary {
   background: var(--accent);
   color: #fff;
+  border-color: var(--accent);
   margin-top: 0.75rem;
 }
 
 .btn-primary:hover {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .btn-danger {
-  background: #c0392b;
-  color: #fff;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
 }
 
 .btn-danger:hover {
-  background: #e74c3c;
+  background: var(--danger-hover-bg);
+  color: #fff;
 }
 
 .btn-icon {
@@ -416,11 +436,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.2rem 0.6rem;
-  background: var(--bg-surface);
+  padding: 0.2rem 0.55rem;
+  background: var(--accent-dim);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  font-size: 0.78rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
   color: var(--text-primary);
 }
 
@@ -441,7 +461,7 @@ body {
 }
 
 .chip-delete:hover {
-  color: #e74c3c;
+  color: var(--danger);
   background: rgba(231, 76, 60, 0.1);
 }
 
@@ -486,7 +506,7 @@ body {
 }
 
 .band-table tbody tr:hover td {
-  background: var(--bg-surface);
+  background: var(--accent-dim);
 }
 
 /* --- Paste Config --- */
@@ -527,22 +547,25 @@ body {
 .btn-accent {
   background: var(--accent);
   color: #fff;
+  border-color: var(--accent);
   font-weight: 600;
 }
 
 .btn-accent:hover {
   background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 /* --- Secondary Button --- */
 .btn-secondary {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border);
 }
 
 .btn-secondary:hover {
-  background: var(--border);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* --- Step Navigation --- */
@@ -627,7 +650,7 @@ body {
 
 .rule-item:hover {
   border-color: var(--accent);
-  background: var(--bg-surface);
+  background: var(--accent-dim);
 }
 
 .rule-text {
@@ -676,6 +699,7 @@ body {
 
 .result-card:hover {
   border-color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .result-header {
@@ -824,6 +848,12 @@ body {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.4rem 0;
+  flex-wrap: nowrap;
+}
+
+.break-input-row .btn {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .break-input-label {

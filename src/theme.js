@@ -1,6 +1,6 @@
 /**
  * Theme management — Multiple theme support.
- * Supports: dark, light, cyber.
+ * Supports: dark, light.
  * Defaults to user's system preference (dark/light), falling back to dark.
  * Persists choice via the state module.
  */
@@ -8,7 +8,7 @@
 import { saveState, loadState } from './state.js';
 
 const THEME_KEY = 'theme';
-const VALID_THEMES = ['dark', 'light', 'cyber'];
+const VALID_THEMES = ['dark', 'light'];
 
 /**
  * Detect the user's preferred color scheme.

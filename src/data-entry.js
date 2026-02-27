@@ -103,6 +103,11 @@ export function initDataEntry(container, options = {}) {
   const emptyInput = container.querySelector('#empty-indicator');
   const pasteErrors = container.querySelector('#paste-errors');
 
+  pasteArea.addEventListener('input', () => {
+    pasteArea.style.height = 'auto';
+    pasteArea.style.height = pasteArea.scrollHeight + 'px';
+  });
+
   emptyInput.value = savedEmpty;
   emptyInput.addEventListener('input', () => {
     saveState(STATE_EMPTY_INDICATOR, emptyInput.value.trim() || 'n/a');
@@ -265,7 +270,7 @@ function buildDataEntryHTML(savedEmpty, savedMode) {
               ※ 時間の数値はすべて「分」として扱われます。
             </p>
           </div>
-          <textarea id="paste-input" class="input-textarea input-textarea-paste" rows="8" placeholder="King Gnu\t井口\t常田\tn/a\t新井\t勢喜\t井口\t20分"></textarea>
+          <textarea id="paste-input" class="input-textarea input-textarea-paste" rows="2" placeholder="King Gnu\t井口\t常田\tn/a\t新井\t勢喜\t井口\t20分"></textarea>
           <button type="button" id="paste-btn" class="btn btn-primary">取り込む</button>
           <div id="paste-errors"></div>
         </div>

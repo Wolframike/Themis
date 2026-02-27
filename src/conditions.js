@@ -195,72 +195,52 @@ function buildConditionsHTML(costWeights, bands, rules) {
 // ─── Rule Config Rendering ────────────────────────────────────────
 
 function renderRuleConfig(container, ruleType, bands, players) {
+  const bandOpts = bands.map((b, i) => `<option value="${i}">${escapeHTML(b.name)}</option>`).join('');
+  const playerOpts = players.map((p) => `<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`).join('');
+
   switch (ruleType) {
     case RULE_TYPES.BAND_POSITION:
       container.innerHTML = `
-        <div class="form-row">
-          <label class="form-label">
-            バンド
-            <select id="rc-band" class="form-select">
-              ${bands.map((b, i) => `<option value="${i}">${escapeHTML(b.name)}</option>`).join('')}
-            </select>
-          </label>
-          <label class="form-label">
-            条件
-            <select id="rc-pos-mode" class="form-select">
-              <option value="exactly">ちょうどX番目</option>
-              <option value="before">X番目以内</option>
-              <option value="after">X番目以後</option>
-            </select>
-          </label>
-          <label class="form-label form-label-short">
-            位置（番号）
-            <input type="number" id="rc-position" class="form-input" min="1" max="${bands.length}" value="1" />
-          </label>
+        <div class="form-row-sentence">
+          <select id="rc-band" class="form-select">${bandOpts}</select>
+          <span>は</span>
+          <input type="number" id="rc-position" class="form-input form-input-narrow" min="1" max="${bands.length}" value="1" />
+          <span>番目</span>
+          <select id="rc-pos-mode" class="form-select">
+            <option value="exactly">ちょうど</option>
+            <option value="after">以降</option>
+            <option value="before">以前</option>
+          </select>
         </div>
       `;
       break;
 
     case RULE_TYPES.BAND_ORDER:
       container.innerHTML = `
-        <div class="form-row">
-          <label class="form-label">
-            バンドA（先に演奏）
-            <select id="rc-band-before" class="form-select">
-              ${bands.map((b, i) => `<option value="${i}">${escapeHTML(b.name)}</option>`).join('')}
-            </select>
-          </label>
-          <label class="form-label form-label-mid">\u306E\u5F8C\u306B</label>
-          <label class="form-label">
-            バンドB（後に演奏）
-            <select id="rc-band-after" class="form-select">
-              ${bands.map((b, i) => `<option value="${i}">${escapeHTML(b.name)}</option>`).join('')}
-            </select>
-          </label>
+        <div class="form-row-sentence">
+          <select id="rc-band-a" class="form-select">${bandOpts}</select>
+          <span>の演奏は</span>
+          <select id="rc-band-b" class="form-select">${bandOpts}</select>
+          <span>の</span>
+          <select id="rc-order-dir" class="form-select">
+            <option value="before">前</option>
+            <option value="after">後</option>
+          </select>
         </div>
       `;
       break;
 
     case RULE_TYPES.PLAYER_APPEARANCE:
       container.innerHTML = `
-        <div class="form-row">
-          <label class="form-label">
-            メンバー
-            <select id="rc-player" class="form-select">
-              ${players.map((p) => `<option value="${escapeHTML(p)}">${escapeHTML(p)}</option>`).join('')}
-            </select>
-          </label>
-          <label class="form-label">
-            条件
-            <select id="rc-appear-mode" class="form-select">
-              <option value="before">全出演をX番目以前に</option>
-              <option value="after">全出演をX番目以降に</option>
-            </select>
-          </label>
-          <label class="form-label form-label-short">
-            位置
-            <input type="number" id="rc-appear-pos" class="form-input" min="1" max="${bands.length}" value="1" />
-          </label>
+        <div class="form-row-sentence">
+          <select id="rc-player" class="form-select">${playerOpts}</select>
+          <span>の出演は全て</span>
+          <input type="number" id="rc-appear-pos" class="form-input form-input-narrow" min="1" max="${bands.length}" value="1" />
+          <span>番目</span>
+          <select id="rc-appear-mode" class="form-select">
+            <option value="after">以降</option>
+            <option value="before">以前</option>
+          </select>
         </div>
       `;
       break;
@@ -279,10 +259,13 @@ function populateRuleConfig(container, rule) {
       break;
     }
     case RULE_TYPES.BAND_ORDER: {
-      const beforeSel = container.querySelector('#rc-band-before');
-      const afterSel = container.querySelector('#rc-band-after');
-      if (beforeSel) beforeSel.value = String(rule.before);
-      if (afterSel) afterSel.value = String(rule.after);
+      const bandASel = container.querySelector('#rc-band-a');
+      const bandBSel = container.querySelector('#rc-band-b');
+      const dirSel = container.querySelector('#rc-order-dir');
+      // Populate as "A の演奏は B の 前" (A plays before B)
+      if (bandASel) bandASel.value = String(rule.before);
+      if (bandBSel) bandBSel.value = String(rule.after);
+      if (dirSel) dirSel.value = 'before';
       break;
     }
     case RULE_TYPES.PLAYER_APPEARANCE: {
@@ -313,10 +296,14 @@ function readRuleConfig(container, ruleType, bands, players) {
       };
     }
     case RULE_TYPES.BAND_ORDER: {
-      const before = parseInt(container.querySelector('#rc-band-before').value, 10);
-      const after = parseInt(container.querySelector('#rc-band-after').value, 10);
-      if (isNaN(before) || isNaN(after)) return null;
-      if (before === after) return { error: '同じバンドを指定することはできません。' };
+      const bandA = parseInt(container.querySelector('#rc-band-a').value, 10);
+      const bandB = parseInt(container.querySelector('#rc-band-b').value, 10);
+      const dir = container.querySelector('#rc-order-dir').value;
+      if (isNaN(bandA) || isNaN(bandB)) return null;
+      if (bandA === bandB) return { error: '同じバンドを指定することはできません。' };
+      // dir="before" → A plays before B; dir="after" → A plays after B
+      const before = dir === 'before' ? bandA : bandB;
+      const after = dir === 'before' ? bandB : bandA;
       return {
         type: RULE_TYPES.BAND_ORDER,
         before,
@@ -384,19 +371,19 @@ function describeRule(rule) {
   switch (rule.type) {
     case RULE_TYPES.BAND_POSITION:
       if (rule.mode === 'exactly') {
-        return `「${escapeHTML(rule.bandName)}」を ${rule.position}番目に固定`;
+        return `「${escapeHTML(rule.bandName)}」は ${rule.position} 番目ちょうど`;
       }
       if (rule.mode === 'after') {
-        return `「${escapeHTML(rule.bandName)}」を ${rule.position}番目以後に配置`;
+        return `「${escapeHTML(rule.bandName)}」は ${rule.position} 番目以降`;
       }
-      return `「${escapeHTML(rule.bandName)}」を ${rule.position}番目以内に配置`;
+      return `「${escapeHTML(rule.bandName)}」は ${rule.position} 番目以前`;
     case RULE_TYPES.BAND_ORDER:
-      return `「${escapeHTML(rule.beforeName)}」を「${escapeHTML(rule.afterName)}」より前に配置`;
+      return `「${escapeHTML(rule.beforeName)}」の演奏は「${escapeHTML(rule.afterName)}」の前`;
     case RULE_TYPES.PLAYER_APPEARANCE:
       if (rule.mode === 'before') {
-        return `${escapeHTML(rule.player)} の全出演を ${rule.position}番目以前に`;
+        return `${escapeHTML(rule.player)} の出演は全て ${rule.position} 番目以前`;
       }
-      return `${escapeHTML(rule.player)} の全出演を ${rule.position}番目以降に`;
+      return `${escapeHTML(rule.player)} の出演は全て ${rule.position} 番目以降`;
     default:
       return '不明なルール';
   }
