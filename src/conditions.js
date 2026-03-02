@@ -21,6 +21,8 @@ const RULE_TYPES = {
   BAND_POSITION: 'bandPosition',
   BAND_ORDER: 'bandOrder',
   PLAYER_APPEARANCE: 'playerAppearance',
+  CONSECUTIVE_LIMIT: 'consecutiveLimit',
+  BAND_ADJACENCY: 'bandAdjacency',
 };
 
 /**
@@ -47,10 +49,22 @@ export function initConditions(container, players, bands, onBack) {
   // --- Cost weights ---
   const weightInputs = container.querySelectorAll('.cost-weight-input');
   weightInputs.forEach((input, i) => {
-    input.addEventListener('input', () => {
-      const val = parseInt(input.value, 10);
-      costWeights[i] = isNaN(val) ? DEFAULT_WEIGHTS[i] : Math.max(0, Math.min(3, val));
-      input.value = costWeights[i];
+    // Select all on focus so typing replaces the value instead of appending
+    input.addEventListener('focus', () => input.select());
+    input.addEventListener('change', () => {
+      let val = parseInt(input.value, 10);
+      if (isNaN(val)) val = DEFAULT_WEIGHTS[i];
+      val = Math.max(0, Math.min(3, val));
+      input.value = val;
+      costWeights[i] = val;
+      saveState(STATE_COST_WEIGHTS, costWeights);
+    });
+    input.addEventListener('blur', () => {
+      let val = parseInt(input.value, 10);
+      if (isNaN(val)) val = DEFAULT_WEIGHTS[i];
+      val = Math.max(0, Math.min(3, val));
+      input.value = val;
+      costWeights[i] = val;
       saveState(STATE_COST_WEIGHTS, costWeights);
     });
   });
@@ -198,6 +212,8 @@ function buildConditionsHTML(costWeights, bands, rules, distinguishGuitar) {
                 <option value="${RULE_TYPES.BAND_POSITION}">バンドの配置指定</option>
                 <option value="${RULE_TYPES.BAND_ORDER}">バンドの順序指定</option>
                 <option value="${RULE_TYPES.PLAYER_APPEARANCE}">メンバーの出演位置</option>
+                <option value="${RULE_TYPES.CONSECUTIVE_LIMIT}">連続出演制限</option>
+                <option value="${RULE_TYPES.BAND_ADJACENCY}">バンドの隣接指定</option>
               </select>
             </label>
           </div>
@@ -267,6 +283,42 @@ function renderRuleConfig(container, ruleType, bands, players) {
         </div>
       `;
       break;
+
+    case RULE_TYPES.CONSECUTIVE_LIMIT:
+      container.innerHTML = `
+        <div class="form-row-sentence">
+          <span>同一メンバーの連続出演を最大</span>
+          <input type="number" id="rc-consec-limit" class="form-input form-input-narrow" min="1" max="${bands.length}" value="2" />
+          <span>バンドまでに制限</span>
+        </div>
+        <p id="consec-warning" class="rule-warning" style="display:none;">
+          1に設定すると、転換コスト最小化ではなく「同じメンバーが連続で出演しない順番」を探索します。条件が厳しく解が見つからない場合があります。
+        </p>
+      `;
+      {
+        const cInput = container.querySelector('#rc-consec-limit');
+        const cWarn = container.querySelector('#consec-warning');
+        cInput.addEventListener('input', () => {
+          cWarn.style.display = parseInt(cInput.value, 10) === 1 ? '' : 'none';
+        });
+      }
+      break;
+
+    case RULE_TYPES.BAND_ADJACENCY:
+      container.innerHTML = `
+        <div class="form-row-sentence">
+          <select id="rc-adj-band-a" class="form-select">${bandOpts}</select>
+          <span>を</span>
+          <select id="rc-adj-band-b" class="form-select">${bandOpts}</select>
+          <span>の</span>
+          <select id="rc-adj-dir" class="form-select">
+            <option value="rightBefore">直前</option>
+            <option value="rightAfter">直後</option>
+          </select>
+          <span>に配置</span>
+        </div>
+      `;
+      break;
   }
 }
 
@@ -298,6 +350,22 @@ function populateRuleConfig(container, rule) {
       if (playerSel) playerSel.value = rule.player;
       if (modeSel) modeSel.value = rule.mode;
       if (posInput) posInput.value = rule.position;
+      break;
+    }
+    case RULE_TYPES.CONSECUTIVE_LIMIT: {
+      const input = container.querySelector('#rc-consec-limit');
+      if (input) input.value = rule.limit;
+      const warning = container.querySelector('#consec-warning');
+      if (warning) warning.style.display = rule.limit === 1 ? '' : 'none';
+      break;
+    }
+    case RULE_TYPES.BAND_ADJACENCY: {
+      const bandASel = container.querySelector('#rc-adj-band-a');
+      const bandBSel = container.querySelector('#rc-adj-band-b');
+      const dirSel = container.querySelector('#rc-adj-dir');
+      if (bandASel) bandASel.value = String(rule.bandA);
+      if (bandBSel) bandBSel.value = String(rule.bandB);
+      if (dirSel) dirSel.value = rule.direction;
       break;
     }
   }
@@ -345,6 +413,26 @@ function readRuleConfig(container, ruleType, bands, players) {
         player,
         mode,
         position: pos,
+      };
+    }
+    case RULE_TYPES.CONSECUTIVE_LIMIT: {
+      const limit = parseInt(container.querySelector('#rc-consec-limit').value, 10);
+      if (isNaN(limit) || limit < 1) return null;
+      return { type: RULE_TYPES.CONSECUTIVE_LIMIT, limit };
+    }
+    case RULE_TYPES.BAND_ADJACENCY: {
+      const bandA = parseInt(container.querySelector('#rc-adj-band-a').value, 10);
+      const bandB = parseInt(container.querySelector('#rc-adj-band-b').value, 10);
+      const direction = container.querySelector('#rc-adj-dir').value;
+      if (isNaN(bandA) || isNaN(bandB)) return null;
+      if (bandA === bandB) return { error: '同じバンドを指定することはできません。' };
+      return {
+        type: RULE_TYPES.BAND_ADJACENCY,
+        bandA,
+        bandB,
+        bandAName: bands[bandA]?.name || '',
+        bandBName: bands[bandB]?.name || '',
+        direction,
       };
     }
   }
@@ -407,6 +495,13 @@ function describeRule(rule) {
         return `${escapeHTML(rule.player)} の出演は全て ${rule.position} 番目以前`;
       }
       return `${escapeHTML(rule.player)} の出演は全て ${rule.position} 番目以降`;
+    case RULE_TYPES.CONSECUTIVE_LIMIT:
+      return `連続出演制限: 同一メンバー最大 ${rule.limit} バンド連続`;
+    case RULE_TYPES.BAND_ADJACENCY:
+      if (rule.direction === 'rightBefore') {
+        return `「${escapeHTML(rule.bandAName)}」を「${escapeHTML(rule.bandBName)}」の直前に配置`;
+      }
+      return `「${escapeHTML(rule.bandAName)}」を「${escapeHTML(rule.bandBName)}」の直後に配置`;
     default:
       return '不明なルール';
   }
@@ -424,6 +519,8 @@ export function buildOptimizerConstraints(uiRules) {
     fixedPositions: [],
     bandOrdering: [],
     playerAppearance: [],
+    consecutiveLimit: null,
+    bandAdjacency: [],
   };
 
   for (const rule of uiRules) {
@@ -435,14 +532,12 @@ export function buildOptimizerConstraints(uiRules) {
             exactPosition: rule.position,
           });
         } else if (rule.mode === 'after') {
-          // 'after' means at or after this position → minPosition
           constraints.rules.push({
             bandIndex: rule.bandIndex,
             minPosition: rule.position,
             requiredBefore: [],
           });
         } else {
-          // 'before' means at or before this position → maxPosition
           constraints.rules.push({
             bandIndex: rule.bandIndex,
             maxPosition: rule.position,
@@ -465,6 +560,22 @@ export function buildOptimizerConstraints(uiRules) {
           mode: rule.mode,
         });
         break;
+
+      case RULE_TYPES.CONSECUTIVE_LIMIT:
+        // Use the most restrictive (smallest) limit if multiple rules exist
+        if (constraints.consecutiveLimit === null || rule.limit < constraints.consecutiveLimit) {
+          constraints.consecutiveLimit = rule.limit;
+        }
+        break;
+
+      case RULE_TYPES.BAND_ADJACENCY: {
+        // rightBefore: A plays right before B → { before: A, after: B }
+        // rightAfter: A plays right after B → { before: B, after: A }
+        const before = rule.direction === 'rightBefore' ? rule.bandA : rule.bandB;
+        const after = rule.direction === 'rightBefore' ? rule.bandB : rule.bandA;
+        constraints.bandAdjacency.push({ before, after });
+        break;
+      }
     }
   }
 

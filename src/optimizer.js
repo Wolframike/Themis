@@ -135,6 +135,8 @@ export function solve(bands, options = {}, topK = 3) {
     fixedPositions = [],
     bandOrdering = [],
     playerAppearance = [],
+    consecutiveLimit = null,
+    bandAdjacency = [],
   } = constraints;
 
   const n = bands.length;
@@ -199,6 +201,47 @@ export function solve(bands, options = {}, topK = 3) {
         mode: pa.mode,
       });
     }
+  }
+
+  // Build local band-adjacency constraints
+  const localBandAdjacency = bandAdjacency
+    .filter((ba) => globalToLocal.has(ba.before) && globalToLocal.has(ba.after))
+    .map((ba) => ({
+      before: globalToLocal.get(ba.before),
+      after: globalToLocal.get(ba.after),
+    }));
+
+  // Pre-compute shared-member matrix for consecutive limit (K=1)
+  let sharesMember = null;
+  if (consecutiveLimit === 1) {
+    sharesMember = Array.from({ length: pn }, () => new Uint8Array(pn));
+    for (let i = 0; i < pn; i++) {
+      for (let j = i + 1; j < pn; j++) {
+        const mI = bands[permIndices[i]].members;
+        const mJ = bands[permIndices[j]].members;
+        let shared = false;
+        for (let s = 0; s < mI.length; s++) {
+          if (mI[s] !== 'n/a') {
+            for (let t = 0; t < mJ.length; t++) {
+              if (mI[s] === mJ[t]) { shared = true; break; }
+            }
+          }
+          if (shared) break;
+        }
+        if (shared) {
+          sharesMember[i][j] = 1;
+          sharesMember[j][i] = 1;
+        }
+      }
+    }
+  }
+
+  // Pre-compute member sets for consecutive limit (K>=2)
+  let bandMemberSets = null;
+  if (consecutiveLimit !== null && consecutiveLimit >= 2) {
+    bandMemberSets = permIndices.map((gi) =>
+      new Set(bands[gi].members.filter((m) => m !== 'n/a')),
+    );
   }
 
   // Pre-compute cost matrix (local indices)
@@ -266,11 +309,16 @@ export function solve(bands, options = {}, topK = 3) {
         return false;
       }
     }
+    // Band adjacency: if this band must have a predecessor, can't start first
+    for (const adj of localBandAdjacency) {
+      if (adj.after === localIdx) return false;
+    }
     return true;
   }
 
   // Check if placing `nxt` at position `pos` (1-indexed) with current `mask` is valid
-  function canPlace(nxt, mask, pos) {
+  // `last` is the local index of the previously placed band (-1 if first)
+  function canPlace(nxt, mask, pos, last) {
     // Legacy rules
     for (const rule of localRules) {
       if (rule.localIndex !== nxt) continue;
@@ -303,6 +351,46 @@ export function solve(bands, options = {}, topK = 3) {
       if (pa.mode === 'after' && pos < pa.position) return false;
     }
 
+    // Consecutive limit (K=1): no shared members between adjacent bands
+    if (sharesMember && last >= 0 && sharesMember[last][nxt]) {
+      return false;
+    }
+
+    // Consecutive limit (K>=2): walk back through parent chain to check runs
+    if (bandMemberSets && consecutiveLimit >= 2) {
+      // Build window: [nxt, last, prev, prev-prev, ...] up to consecutiveLimit+1 bands
+      const win = [nxt];
+      let curBand = last;
+      let curMask = mask;
+      for (let k = 0; k <= consecutiveLimit - 1; k++) {
+        win.push(curBand);
+        if (win.length === consecutiveLimit + 1) break;
+        const prev = parent[curBand * states + curMask];
+        if (prev === -1) break;
+        curMask ^= (1 << curBand);
+        curBand = prev;
+      }
+      // Only check if window is full (enough bands to violate the limit)
+      if (win.length === consecutiveLimit + 1) {
+        const first = bandMemberSets[win[0]];
+        for (const m of first) {
+          let inAll = true;
+          for (let k = 1; k < win.length; k++) {
+            if (!bandMemberSets[win[k]].has(m)) { inAll = false; break; }
+          }
+          if (inAll) return false;
+        }
+      }
+    }
+
+    // Band adjacency: enforce immediate predecessor/successor pairs
+    for (const adj of localBandAdjacency) {
+      // If placing the "after" band, the previous must be "before"
+      if (adj.after === nxt && last !== adj.before) return false;
+      // If the previous band is "before", next must be "after"
+      if (adj.before === last && nxt !== adj.after) return false;
+    }
+
     return true;
   }
 
@@ -325,7 +413,7 @@ export function solve(bands, options = {}, topK = 3) {
       for (let nxt = 0; nxt < pn; nxt++) {
         if (mask & (1 << nxt)) continue; // already placed
 
-        if (!canPlace(nxt, mask, nextPos)) continue;
+        if (!canPlace(nxt, mask, nextPos, last)) continue;
 
         const newMask = mask | (1 << nxt);
         const newCost = currentCost + costMatrix[last][nxt];
@@ -380,10 +468,45 @@ export function solve(bands, options = {}, topK = 3) {
     if (seen.has(key)) continue;
     seen.add(key);
 
+    // Post-filter: consecutive limit for K >= 2
+    if (consecutiveLimit !== null && consecutiveLimit >= 2) {
+      if (!checkConsecutiveLimit(pathGlobal, bands, consecutiveLimit)) continue;
+    }
+
     results.push({ path: pathGlobal, cost: candidate.cost });
   }
 
   return results;
+}
+
+/**
+ * Check if a path satisfies the consecutive performance limit.
+ * Returns true if no member appears in more than `limit` consecutive bands.
+ */
+function checkConsecutiveLimit(path, bands, limit) {
+  // Track each member's current consecutive run length
+  const memberConsec = new Map();
+
+  for (let i = 0; i < path.length; i++) {
+    const currentMembers = new Set(
+      bands[path[i]].members.filter((m) => m !== 'n/a'),
+    );
+    const newConsec = new Map();
+
+    for (const member of currentMembers) {
+      const prev = memberConsec.get(member) || 0;
+      const count = prev + 1;
+      if (count > limit) return false;
+      newConsec.set(member, count);
+    }
+
+    memberConsec.clear();
+    for (const [m, c] of newConsec) {
+      memberConsec.set(m, c);
+    }
+  }
+
+  return true;
 }
 
 /**

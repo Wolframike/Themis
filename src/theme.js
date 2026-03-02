@@ -8,7 +8,7 @@
 import { saveState, loadState } from './state.js';
 
 const THEME_KEY = 'theme';
-const VALID_THEMES = ['dark', 'light'];
+const VALID_THEMES = ['dark', 'light', 'cyber'];
 
 /**
  * Detect the user's preferred color scheme.

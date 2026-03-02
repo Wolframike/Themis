@@ -225,6 +225,7 @@ function buildStepHTML(schedule, breaks, minUnit, bands) {
       </tr>
     `);
 
+
     // Break insert zone (between rows, not after the last one)
     if (i < schedule.length - 1) {
       const existingBreak = breakMap.get(i);

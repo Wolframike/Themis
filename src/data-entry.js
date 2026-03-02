@@ -157,39 +157,43 @@ export function initDataEntry(container, options = {}) {
     showPasteSuccess(pasteErrors, result.bands.length, result.players.length);
   });
 
-  // --- Clear All (inline confirmation to avoid native confirm() glitches) ---
+  // --- Clear All (pre-rendered confirm bar to avoid DOM timing glitches) ---
   const clearBtn = container.querySelector('#clear-all-btn');
-  const actionsBar = clearBtn.closest('.actions-bar');
+  const confirmBar = container.querySelector('#clear-confirm-bar');
+  const confirmYes = container.querySelector('#btn-confirm-yes');
+  const confirmNo = container.querySelector('#btn-confirm-no');
 
-  clearBtn.addEventListener('click', () => {
-    // Show inline confirmation
-    clearBtn.style.display = 'none';
-    const confirmBar = document.createElement('div');
-    confirmBar.className = 'clear-confirm-bar';
-    confirmBar.innerHTML = `
-      <span class="clear-confirm-text">\u5168\u3066\u306E\u30C7\u30FC\u30BF\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F</span>
-      <button type="button" class="btn btn-danger btn-confirm-yes">\u524A\u9664\u3059\u308B</button>
-      <button type="button" class="btn btn-secondary btn-confirm-no">\u30AD\u30E3\u30F3\u30BB\u30EB</button>
-    `;
-    actionsBar.insertBefore(confirmBar, clearBtn);
+  function showConfirm() {
+    clearBtn.classList.add('hidden');
+    confirmBar.classList.remove('hidden');
+  }
 
-    confirmBar.querySelector('.btn-confirm-yes').addEventListener('click', () => {
-      players = [];
-      bands = [];
-      playerInput.value = '';
-      saveState(STATE_PLAYERS, players);
-      saveState(STATE_BANDS, bands);
-      renderPlayerChips(playerChips, players);
-      renderBandTable(bandTableBody, bands, players, container);
-      refreshAllDropdowns(container, players);
-      confirmBar.remove();
-      clearBtn.style.display = '';
-    });
+  function hideConfirm() {
+    confirmBar.classList.add('hidden');
+    clearBtn.classList.remove('hidden');
+  }
 
-    confirmBar.querySelector('.btn-confirm-no').addEventListener('click', () => {
-      confirmBar.remove();
-      clearBtn.style.display = '';
-    });
+  clearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showConfirm();
+  });
+
+  confirmYes.addEventListener('click', (e) => {
+    e.stopPropagation();
+    players = [];
+    bands = [];
+    playerInput.value = '';
+    saveState(STATE_PLAYERS, players);
+    saveState(STATE_BANDS, bands);
+    renderPlayerChips(playerChips, players);
+    renderBandTable(bandTableBody, bands, players, container);
+    refreshAllDropdowns(container, players);
+    hideConfirm();
+  });
+
+  confirmNo.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideConfirm();
   });
 
   // --- Proceed to Step 2 ---
@@ -298,6 +302,11 @@ function buildDataEntryHTML(savedEmpty, savedMode) {
 
       <div class="subsection actions-bar">
         <button type="button" id="clear-all-btn" class="btn btn-danger">全データ削除</button>
+        <div id="clear-confirm-bar" class="clear-confirm-bar hidden">
+          <span class="clear-confirm-text">\u5168\u3066\u306E\u30C7\u30FC\u30BF\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F</span>
+          <button type="button" id="btn-confirm-yes" class="btn btn-danger">\u524A\u9664\u3059\u308B</button>
+          <button type="button" id="btn-confirm-no" class="btn btn-secondary">\u30AD\u30E3\u30F3\u30BB\u30EB</button>
+        </div>
         <button type="button" id="proceed-btn" class="btn btn-accent">\u2192 条件設定へ (Step 2)</button>
       </div>
     </section>

@@ -45,6 +45,26 @@
 }
 
 
+/* --- Cyber Theme (Neon / Synthwave palette) --- */
+[data-theme='cyber'] {
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #0f1028;
+  --bg-surface: #161836;
+  --text-primary: #e0e0ff;
+  --text-secondary: #8888bb;
+  --text-muted: #555580;
+  --accent: #00e5ff;
+  --accent-hover: #40efff;
+  --accent-dim: rgba(0, 229, 255, 0.06);
+  --border: #1e2050;
+  --shadow: rgba(0, 0, 0, 0.7);
+  --danger: #ff3860;
+  --danger-border: rgba(255, 56, 96, 0.4);
+  --danger-hover-bg: rgba(255, 56, 96, 0.15);
+  --radius: 4px;
+  --btn-radius: 4px;
+}
+
 /* --- Reset & Base --- */
 *,
 *::before,
@@ -125,6 +145,7 @@ body {
 
 .theme-btn {
   padding: 0.35rem 0.65rem;
+  min-width: 48px;
   background: var(--bg-surface);
   border: none;
   border-right: 1px solid var(--border);
@@ -135,6 +156,9 @@ body {
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
   white-space: nowrap;
+  text-align: center;
+  line-height: 1.4;
+  box-sizing: border-box;
 }
 
 .theme-btn:last-child {
@@ -961,6 +985,17 @@ body {
   min-height: 0;
 }
 
+.rule-warning {
+  font-size: 0.82rem;
+  color: var(--danger);
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--danger-hover-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius);
+  line-height: 1.5;
+}
+
 /* --- Clear Confirm Bar --- */
 .clear-confirm-bar {
   display: flex;
@@ -977,4 +1012,155 @@ body {
 /* --- Utility --- */
 .hidden {
   display: none !important;
+}
+
+/* ============================================================
+   Mobile Responsive
+   ============================================================ */
+
+@media (max-width: 640px) {
+  /* Reduce app padding */
+  #app {
+    padding: 1.2rem 0.75rem;
+  }
+
+  /* Shrink logo on mobile */
+  .page-logo {
+    width: 48px;
+    height: 48px;
+    top: 0.6rem;
+    left: 0.6rem;
+  }
+
+  /* Header: stack title and theme switcher */
+  .app-header {
+    text-align: center;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .app-subtitle {
+    font-size: 1.05rem;
+  }
+
+  .theme-switcher {
+    position: static;
+    margin: 0.75rem auto 0;
+  }
+
+  /* Parts row: 3 columns x 2 rows instead of 6x1 */
+  .form-parts-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Cost grid: 3 columns x 2 rows */
+  .cost-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Form rows: stack vertically */
+  .form-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-label-short {
+    flex: unset;
+  }
+
+  /* Rule builder sentence: allow wrapping (already flex-wrap: wrap) */
+  .form-row-sentence {
+    font-size: 0.82rem;
+  }
+
+  /* Actions bar: stack buttons */
+  .actions-bar {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .actions-bar .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Clear confirm bar: wrap */
+  .clear-confirm-bar {
+    flex-wrap: wrap;
+  }
+
+  /* Step nav: allow wrapping */
+  .step-nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Timing form: stack labels */
+  .timing-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .timing-form .form-label {
+    flex: unset;
+  }
+
+  /* Result header: allow wrap */
+  .result-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Tab buttons: smaller text */
+  .tab-btn {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  /* Break "+" buttons: always visible on touch devices */
+  .btn-add-break {
+    opacity: 0.5;
+  }
+
+  /* Break input row: compact inline on mobile */
+  .break-input-row {
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.3rem;
+  }
+
+  .break-input-label {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+
+  .break-duration-input {
+    width: 50px;
+    padding: 0.3rem 0.2rem;
+    font-size: 0.75rem;
+  }
+
+  .break-input-row .btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  /* Band table: smaller font for mobile */
+  .band-table {
+    font-size: 0.72rem;
+  }
+
+  .band-table th,
+  .band-table td {
+    padding: 0.3rem 0.35rem;
+  }
+
+  .band-table th {
+    font-size: 0.68rem;
+  }
 }
