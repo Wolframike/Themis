@@ -1,122 +1,167 @@
 /**
- * Data Entry UI for Themis — Step 1.
- *
- * Manages:
- * - Entry mode choice (Manual / Spreadsheet) as top-level decision
- * - Player name list (tag-input in manual mode, auto-detected in paste mode)
- * - Band entry (manual form with part dropdowns + spreadsheet paste)
- * - Persists all data to localStorage via state.js
+ * Data Entry Panel for Themis v2.
+ * Renders as a collapsible panel in the left rail.
  */
 
 import { saveState, loadState } from './state.js';
 import { parseSpreadsheet } from './spreadsheet-parser.js';
-
-const STATE_PLAYERS = 'players';
-const STATE_BANDS = 'bands';
-const STATE_EMPTY_INDICATOR = 'emptyIndicator';
-const STATE_ENTRY_MODE = 'entryMode';
-
-const PART_LABELS = ['Vo.', 'L.Gt', 'B.Gt', 'Ba.', 'Dr.', 'Key.'];
+import { escapeHTML, PART_LABELS } from './utils.js';
 const PART_KEYS = ['vocal', 'leadGuitar', 'backingGuitar', 'bass', 'drums', 'keyboard'];
 
 /**
- * Initialize the data entry UI. Call once on page load.
- * @param {HTMLElement} container - The .app-main element
- * @param {Object} [options]
- * @param {function} [options.onProceed] - Callback when user proceeds to Step 2
+ * Initialize the data entry panel section.
+ * Appends into the left panel container.
  */
-export function initDataEntry(container, options = {}) {
-  const { onProceed } = options;
-  // Load saved state
-  const savedPlayers = loadState(STATE_PLAYERS, []);
-  const savedBands = loadState(STATE_BANDS, []);
-  const savedEmpty = loadState(STATE_EMPTY_INDICATOR, 'n/a');
-  const savedMode = loadState(STATE_ENTRY_MODE, 'manual');
+export function initDataPanel(container, appState, onDataChanged) {
+  const savedEmpty = loadState('emptyIndicator', 'n/a');
+  const savedMode = loadState('entryMode', 'paste');
 
-  // Render the full data entry UI
-  container.innerHTML = buildDataEntryHTML(savedEmpty, savedMode);
+  // Create panel section
+  const section = document.createElement('div');
+  section.className = 'panel-section open';
+  section.dataset.panel = 'data';
 
-  // State
-  let players = savedPlayers;
-  let bands = savedBands;
+  section.innerHTML = `
+    <div class="panel-header">
+      <div class="panel-header-left">
+        <span class="panel-icon data">☰</span>
+        <span class="panel-title">バンドデータ</span>
+        <span class="panel-badge" id="band-count-badge">${appState.bands.length} bands</span>
+      </div>
+      <span class="panel-chevron">▸</span>
+    </div>
+    <div class="panel-body">
+      <div class="p-tabs">
+        <button type="button" class="p-tab ${savedMode === 'paste' ? 'active' : ''}" data-tab="paste">Paste</button>
+        <button type="button" class="p-tab ${savedMode !== 'paste' ? 'active' : ''}" data-tab="manual">Manual</button>
+      </div>
 
-  // --- Tab switching (top-level entry mode) ---
-  const tabManual = container.querySelector('#tab-manual');
-  const tabPaste = container.querySelector('#tab-paste');
+      <!-- Paste tab -->
+      <div id="data-tab-paste" class="${savedMode !== 'paste' ? 'hidden' : ''}">
+        <div class="p-row p-inline">
+          <label class="p-label" style="margin:0;flex:0 0 auto">空席表記</label>
+          <input class="p-input" id="empty-indicator" style="width:55px;text-align:center;font-family:var(--font-mono)" value="${escapeHTML(savedEmpty)}" />
+          <div style="flex:1"></div>
+          <button class="p-btn p-btn-accent p-btn-sm" id="paste-btn">解析</button>
+        </div>
+        <div class="p-row">
+          <textarea class="p-textarea" id="paste-input" rows="3" placeholder="King Gnu&#9;井口&#9;常田&#9;n/a&#9;新井&#9;勢喜&#9;井口&#9;20分"></textarea>
+          <div class="p-help">時間の数値はすべて「分」として扱います</div>
+        </div>
+        <div id="paste-feedback"></div>
+      </div>
 
-  wireTabSwitching(container, (mode) => {
-    saveState(STATE_ENTRY_MODE, mode);
+      <!-- Manual tab -->
+      <div id="data-tab-manual" class="${savedMode === 'paste' ? 'hidden' : ''}">
+        <div class="p-row">
+          <label class="p-label">プレイヤー</label>
+          <div class="p-tag-wrap" id="player-tag-wrap">
+            <div id="player-chips"></div>
+            <input type="text" class="p-tag-input" id="player-tag-input" placeholder="名前を入力 + Enter" />
+          </div>
+        </div>
+
+        <div class="p-row">
+          <label class="p-label">バンド名</label>
+          <input type="text" class="p-input" id="band-name-input" placeholder="バンド名" />
+        </div>
+        <div class="p-row">
+          <label class="p-label">パート</label>
+          <div class="manual-form-parts" id="manual-parts">
+            ${PART_LABELS.map((label, i) => `
+              <label class="p-label">
+                ${label}
+                <select class="p-select part-dropdown" id="part-${PART_KEYS[i]}">
+                  <option value="n/a">— 空き —</option>
+                </select>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        <div class="p-row p-inline">
+          <label class="p-label" style="margin:0;flex:0 0 auto">時間(分)</label>
+          <input type="number" class="p-input" id="band-time-input" style="width:55px;font-family:var(--font-mono)" min="1" placeholder="5" />
+          <div style="flex:1"></div>
+          <button class="p-btn p-btn-accent p-btn-sm" id="add-band-btn">追加</button>
+        </div>
+      </div>
+
+      <!-- Band list -->
+      <div class="p-row" style="margin-top:0.6rem">
+        <label class="p-label">登録済みバンド</label>
+        <div class="band-mini-list" id="band-mini-list"></div>
+      </div>
+
+      <!-- Clear -->
+      <div style="display:flex;justify-content:flex-end;margin-top:0.3rem" id="clear-area">
+        <button class="p-btn p-btn-danger p-btn-sm" id="clear-all-btn">全データ削除</button>
+      </div>
+    </div>
+  `;
+
+  container.appendChild(section);
+
+  // --- Wire panel toggle ---
+  section.querySelector('.panel-header').addEventListener('click', () => {
+    section.classList.toggle('open');
   });
 
-  // --- Player Tag Input (Manual Mode) ---
-  const playerInput = container.querySelector('#player-tag-input');
-  const playerChips = container.querySelector('#player-chips');
+  // --- State refs ---
+  const bandCountBadge = section.querySelector('#band-count-badge');
+  const pasteFeedback = section.querySelector('#paste-feedback');
+  const pasteInput = section.querySelector('#paste-input');
+  const emptyInput = section.querySelector('#empty-indicator');
+  const pasteBtn = section.querySelector('#paste-btn');
+  const playerChips = section.querySelector('#player-chips');
+  const playerInput = section.querySelector('#player-tag-input');
+  const bandNameInput = section.querySelector('#band-name-input');
+  const bandTimeInput = section.querySelector('#band-time-input');
+  const addBandBtn = section.querySelector('#add-band-btn');
+  const bandMiniList = section.querySelector('#band-mini-list');
+  const clearArea = section.querySelector('#clear-area');
 
-  renderPlayerChips(playerChips, players);
+  function updateBadge() {
+    bandCountBadge.textContent = `${appState.bands.length} bands`;
+  }
 
-  playerInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const name = playerInput.value.trim();
-      if (name && !players.includes(name)) {
-        players.push(name);
-        saveState(STATE_PLAYERS, players);
-        renderPlayerChips(playerChips, players);
-        refreshAllDropdowns(container, players);
-      }
-      playerInput.value = '';
-    }
+  // Delegated band delete listener (wired once, not per render)
+  bandMiniList.addEventListener('click', (e) => {
+    const btn = e.target.closest('.band-mini-delete');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.index, 10);
+    appState.bands.splice(idx, 1);
+    saveState('bands', appState.bands);
+    renderBandList();
+    updateBadge();
+    onDataChanged();
   });
 
-  // Wire chip deletion (delegated)
-  playerChips.addEventListener('click', (e) => {
-    const delBtn = e.target.closest('.chip-delete');
-    if (!delBtn) return;
-    const name = delBtn.dataset.name;
-    players = players.filter((p) => p !== name);
-    saveState(STATE_PLAYERS, players);
-    renderPlayerChips(playerChips, players);
-    refreshAllDropdowns(container, players);
+  // --- Tab switching ---
+  section.querySelectorAll('.p-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      section.querySelectorAll('.p-tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      const mode = tab.dataset.tab;
+      section.querySelector('#data-tab-paste').classList.toggle('hidden', mode !== 'paste');
+      section.querySelector('#data-tab-manual').classList.toggle('hidden', mode !== 'manual');
+      saveState('entryMode', mode);
+    });
   });
 
-  // --- Band Manual Entry ---
-  const bandForm = container.querySelector('#band-form');
-  const bandTableBody = container.querySelector('#band-table-body');
-
-  renderBandTable(bandTableBody, bands, players, container);
-  refreshAllDropdowns(container, players);
-
-  bandForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const formData = readBandForm(bandForm);
-    if (!formData) return;
-
-    bands.push(formData);
-    saveState(STATE_BANDS, bands);
-    renderBandTable(bandTableBody, bands, players, container);
-    bandForm.reset();
-  });
-
-  // --- Spreadsheet Paste ---
-  const pasteBtn = container.querySelector('#paste-btn');
-  const pasteArea = container.querySelector('#paste-input');
-  const emptyInput = container.querySelector('#empty-indicator');
-  const pasteErrors = container.querySelector('#paste-errors');
-
-  pasteArea.addEventListener('input', () => {
-    pasteArea.style.height = 'auto';
-    pasteArea.style.height = pasteArea.scrollHeight + 'px';
-  });
-
-  emptyInput.value = savedEmpty;
+  // --- Paste ---
   emptyInput.addEventListener('input', () => {
-    saveState(STATE_EMPTY_INDICATOR, emptyInput.value.trim() || 'n/a');
+    saveState('emptyIndicator', emptyInput.value.trim() || 'n/a');
+  });
+
+  pasteInput.addEventListener('input', () => {
+    pasteInput.style.height = 'auto';
+    pasteInput.style.height = pasteInput.scrollHeight + 'px';
   });
 
   pasteBtn.addEventListener('click', () => {
-    const text = pasteArea.value.trim();
+    const text = pasteInput.value.trim();
     if (!text) {
-      showPasteErrors(pasteErrors, [{ row: 0, message: 'テキストが入力されていません。' }]);
+      pasteFeedback.innerHTML = '<div class="p-error">テキストが入力されていません。</div>';
       return;
     }
 
@@ -124,310 +169,201 @@ export function initDataEntry(container, options = {}) {
     const result = parseSpreadsheet(text, emptyInd);
 
     if (result.errors.length > 0) {
-      showPasteErrors(pasteErrors, result.errors);
+      pasteFeedback.innerHTML = result.errors.map((e) =>
+        `<div class="p-error">${escapeHTML(e.message)}</div>`
+      ).join('');
       return;
     }
 
-    // Merge new players
-    const existingSet = new Set(players);
-    let newPlayersAdded = false;
+    // Merge players
+    const existingSet = new Set(appState.players);
     for (const p of result.players) {
       if (!existingSet.has(p)) {
-        players.push(p);
+        appState.players.push(p);
         existingSet.add(p);
-        newPlayersAdded = true;
       }
     }
-    if (newPlayersAdded) {
-      saveState(STATE_PLAYERS, players);
-      renderPlayerChips(playerChips, players);
-      refreshAllDropdowns(container, players);
-    }
+    saveState('players', appState.players);
 
-    // Add bands
+    // Add bands (reject duplicates, case-insensitive)
+    const existingNames = new Set(appState.bands.map((b) => b.name.toLowerCase()));
+    const dupes = [];
+    let added = 0;
     for (const b of result.bands) {
-      bands.push(b);
+      if (existingNames.has(b.name.toLowerCase())) {
+        dupes.push(b.name);
+      } else {
+        appState.bands.push(b);
+        existingNames.add(b.name.toLowerCase());
+        added++;
+      }
     }
-    saveState(STATE_BANDS, bands);
-    renderBandTable(bandTableBody, bands, players, container);
+    saveState('bands', appState.bands);
 
-    // Clear paste area and errors
-    pasteArea.value = '';
-    pasteErrors.innerHTML = '';
-    showPasteSuccess(pasteErrors, result.bands.length, result.players.length);
-  });
-
-  // --- Clear All (pre-rendered confirm bar to avoid DOM timing glitches) ---
-  const clearBtn = container.querySelector('#clear-all-btn');
-  const confirmBar = container.querySelector('#clear-confirm-bar');
-  const confirmYes = container.querySelector('#btn-confirm-yes');
-  const confirmNo = container.querySelector('#btn-confirm-no');
-
-  function showConfirm() {
-    clearBtn.classList.add('hidden');
-    confirmBar.classList.remove('hidden');
-  }
-
-  function hideConfirm() {
-    confirmBar.classList.add('hidden');
-    clearBtn.classList.remove('hidden');
-  }
-
-  clearBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showConfirm();
-  });
-
-  confirmYes.addEventListener('click', (e) => {
-    e.stopPropagation();
-    players = [];
-    bands = [];
-    playerInput.value = '';
-    saveState(STATE_PLAYERS, players);
-    saveState(STATE_BANDS, bands);
-    renderPlayerChips(playerChips, players);
-    renderBandTable(bandTableBody, bands, players, container);
-    refreshAllDropdowns(container, players);
-    hideConfirm();
-  });
-
-  confirmNo.addEventListener('click', (e) => {
-    e.stopPropagation();
-    hideConfirm();
-  });
-
-  // --- Proceed to Step 2 ---
-  if (onProceed) {
-    const proceedBtn = container.querySelector('#proceed-btn');
-    if (proceedBtn) {
-      proceedBtn.addEventListener('click', onProceed);
+    pasteInput.value = '';
+    let feedbackHtml = '';
+    if (added > 0) {
+      feedbackHtml += `<div class="p-success">✓ ${added}バンド登録 · ${result.players.length}人検出</div>`;
     }
+    if (dupes.length > 0) {
+      feedbackHtml += `<div class="p-error" style="margin-top:0.3rem">重複のためスキップ: ${dupes.map(escapeHTML).join('、')}</div>`;
+    }
+    if (!added && dupes.length > 0) {
+      feedbackHtml = `<div class="p-error">全て既に登録済みのバンドです: ${dupes.map(escapeHTML).join('、')}</div>`;
+    }
+    pasteFeedback.innerHTML = feedbackHtml;
+
+    renderPlayerChips();
+    refreshDropdowns();
+    renderBandList();
+    updateBadge();
+    onDataChanged();
+  });
+
+  // --- Manual: Player tag input ---
+  function renderPlayerChips() {
+    playerChips.innerHTML = appState.players.map((p) =>
+      `<span class="p-chip">${escapeHTML(p)}<button type="button" class="p-chip-delete" data-name="${escapeHTML(p)}">✕</button></span>`
+    ).join('');
   }
-}
 
-// ─── HTML Template ────────────────────────────────────────────────
+  playerChips.addEventListener('click', (e) => {
+    const del = e.target.closest('.p-chip-delete');
+    if (!del) return;
+    appState.players = appState.players.filter((p) => p !== del.dataset.name);
+    saveState('players', appState.players);
+    renderPlayerChips();
+    refreshDropdowns();
+    onDataChanged();
+  });
 
-function buildDataEntryHTML(savedEmpty, savedMode) {
-  const manualActive = savedMode !== 'paste';
-  return `
-    <section class="section" id="section-players">
-      <h2 class="section-title">Step 1: データ入力</h2>
-
-      <div class="subsection">
-        <h3 class="subsection-title">入力方法</h3>
-        <div class="tab-bar">
-          <button type="button" class="tab-btn ${manualActive ? 'active' : ''}" data-tab="manual">手動入力</button>
-          <button type="button" class="tab-btn ${!manualActive ? 'active' : ''}" data-tab="paste">スプレッドシート貼り付け</button>
-        </div>
-
-        <div class="tab-content ${manualActive ? '' : 'hidden'}" id="tab-manual">
-          <div class="subsection">
-            <h3 class="subsection-title">参加メンバー</h3>
-            <p class="subsection-desc">名前を入力して Enter で追加してください。</p>
-            <div class="tag-input-wrap">
-              <div id="player-chips" class="tag-input-chips"></div>
-              <input type="text" id="player-tag-input" class="tag-input" placeholder="メンバー名を入力..." />
-            </div>
-          </div>
-
-          <div class="subsection">
-            <h3 class="subsection-title">バンド登録</h3>
-            <form id="band-form" class="band-form">
-              <div class="form-row">
-                <label class="form-label">
-                  バンド名
-                  <input type="text" id="band-name" class="form-input" required placeholder="バンド名を入力" />
-                </label>
-                <label class="form-label form-label-short">
-                  演奏時間（分）
-                  <input type="number" id="band-time" class="form-input" required min="1" placeholder="5" />
-                </label>
-              </div>
-              <div class="form-row form-parts-row">
-                ${PART_LABELS.map(
-                  (label, i) => `
-                  <label class="form-label form-label-part">
-                    ${label}
-                    <select id="part-${PART_KEYS[i]}" class="form-select part-dropdown">
-                      <option value="n/a">\u2014 \u7A7A\u304D \u2014</option>
-                    </select>
-                  </label>
-                `,
-                ).join('')}
-              </div>
-              <button type="submit" class="btn btn-primary">バンドを追加</button>
-            </form>
-          </div>
-        </div>
-
-        <div class="tab-content ${!manualActive ? '' : 'hidden'}" id="tab-paste">
-          <div class="paste-config">
-            <label class="form-label">
-              空きスロットの表記
-              <input type="text" id="empty-indicator" class="form-input form-input-short" value="${escapeHTML(savedEmpty)}" placeholder="n/a" />
-            </label>
-            <p class="subsection-desc">
-              スプレッドシートからコピーしたデータを貼り付けてください。<br>
-              各セルはタブ区切りで、順序は: バンド名 / Vo. / L.Gt / B.Gt / Ba. / Dr. / Key. / 時間<br>
-              <strong>バンド名以外のセルにスペースを含めないでください。</strong><br>
-              メンバー名は自動的に検出されます。<br>
-              ※ 時間の数値はすべて「分」として扱われます。
-            </p>
-          </div>
-          <textarea id="paste-input" class="input-textarea input-textarea-paste" rows="2" placeholder="King Gnu\t井口\t常田\tn/a\t新井\t勢喜\t井口\t20分"></textarea>
-          <button type="button" id="paste-btn" class="btn btn-primary">取り込む</button>
-          <div id="paste-errors"></div>
-        </div>
-      </div>
-
-      <div class="subsection">
-        <h3 class="subsection-title">登録済みバンド</h3>
-        <div class="band-table-wrap">
-          <table class="band-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>バンド名</th>
-                ${PART_LABELS.map((l) => `<th>${l}</th>`).join('')}
-                <th>時間</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="band-table-body">
-            </tbody>
-          </table>
-        </div>
-        <p id="band-count" class="subsection-desc"></p>
-      </div>
-
-      <div class="subsection actions-bar">
-        <button type="button" id="clear-all-btn" class="btn btn-danger">全データ削除</button>
-        <div id="clear-confirm-bar" class="clear-confirm-bar hidden">
-          <span class="clear-confirm-text">\u5168\u3066\u306E\u30C7\u30FC\u30BF\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F</span>
-          <button type="button" id="btn-confirm-yes" class="btn btn-danger">\u524A\u9664\u3059\u308B</button>
-          <button type="button" id="btn-confirm-no" class="btn btn-secondary">\u30AD\u30E3\u30F3\u30BB\u30EB</button>
-        </div>
-        <button type="button" id="proceed-btn" class="btn btn-accent">\u2192 条件設定へ (Step 2)</button>
-      </div>
-    </section>
-  `;
-}
-
-// ─── Rendering Helpers ────────────────────────────────────────────
-
-function renderPlayerChips(el, players) {
-  if (players.length === 0) {
-    el.innerHTML = '';
-    return;
-  }
-  el.innerHTML = players
-    .map(
-      (p) => `<span class="chip chip-removable">${escapeHTML(p)}<button type="button" class="chip-delete" data-name="${escapeHTML(p)}" title="削除">\u2715</button></span>`,
-    )
-    .join('');
-}
-
-function refreshAllDropdowns(container, players) {
-  const selects = container.querySelectorAll('.part-dropdown');
-  selects.forEach((sel) => {
-    const current = sel.value;
-    sel.innerHTML = '<option value="n/a">\u2014 \u7A7A\u304D \u2014</option>';
-    for (const p of players) {
-      const opt = document.createElement('option');
-      opt.value = p;
-      opt.textContent = p;
-      if (p === current) opt.selected = true;
-      sel.appendChild(opt);
+  playerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const name = playerInput.value.trim();
+      if (name && !appState.players.includes(name)) {
+        appState.players.push(name);
+        saveState('players', appState.players);
+        renderPlayerChips();
+        refreshDropdowns();
+      }
+      playerInput.value = '';
     }
   });
-}
 
-function renderBandTable(tbody, bands, players, container) {
-  if (bands.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="text-muted text-center">バンドが登録されていません</td></tr>';
-  } else {
-    tbody.innerHTML = bands
-      .map(
-        (b, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${escapeHTML(b.name)}</td>
-        ${b.members.map((m) => `<td>${escapeHTML(m)}</td>`).join('')}
-        <td>${b.estimatedTime}分</td>
-        <td><button type="button" class="btn-icon btn-delete" data-index="${i}" title="削除">\u2715</button></td>
-      </tr>
-    `,
-      )
-      .join('');
-
-    // Wire delete buttons
-    tbody.querySelectorAll('.btn-delete').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.index, 10);
-        bands.splice(idx, 1);
-        saveState(STATE_BANDS, bands);
-        renderBandTable(tbody, bands, players, container);
-      });
+  // --- Manual: Dropdowns ---
+  function refreshDropdowns() {
+    section.querySelectorAll('.part-dropdown').forEach((sel) => {
+      const current = sel.value;
+      sel.innerHTML = '<option value="n/a">— 空き —</option>';
+      for (const p of appState.players) {
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p;
+        if (p === current) opt.selected = true;
+        sel.appendChild(opt);
+      }
     });
   }
 
-  const countEl = container.querySelector('#band-count');
-  if (countEl) {
-    countEl.textContent = bands.length > 0 ? `${bands.length}バンド登録済み` : '';
+  // --- Manual: Add band ---
+  addBandBtn.addEventListener('click', () => {
+    const name = bandNameInput.value.trim();
+    const time = parseInt(bandTimeInput.value, 10);
+    if (!name || !time || time <= 0) return;
+
+    if (appState.bands.some((b) => b.name.toLowerCase() === name.toLowerCase())) {
+      bandNameInput.style.borderColor = 'var(--red)';
+      let warn = section.querySelector('#band-dupe-warn');
+      if (!warn) {
+        warn = document.createElement('div');
+        warn.id = 'band-dupe-warn';
+        warn.className = 'p-error';
+        bandNameInput.parentElement.appendChild(warn);
+      }
+      warn.textContent = `「${name}」は既に登録されています。`;
+      setTimeout(() => { bandNameInput.style.borderColor = ''; if (warn) warn.remove(); }, 3000);
+      return;
+    }
+
+    const members = PART_KEYS.map((key) => {
+      const sel = section.querySelector(`#part-${key}`);
+      return sel ? sel.value : 'n/a';
+    });
+
+    appState.bands.push({ name, members, estimatedTime: time });
+    saveState('bands', appState.bands);
+
+    bandNameInput.value = '';
+    bandTimeInput.value = '';
+
+    renderBandList();
+    updateBadge();
+    onDataChanged();
+  });
+
+  // --- Band list ---
+  function renderBandList() {
+    if (appState.bands.length === 0) {
+      bandMiniList.innerHTML = '<div style="font-size:0.68rem;color:var(--text-3);padding:0.3rem 0">バンドが登録されていません</div>';
+      return;
+    }
+
+    bandMiniList.innerHTML = appState.bands.map((b, i) => `
+      <div class="band-mini-item">
+        <span class="band-mini-name">${escapeHTML(b.name)}</span>
+        <span class="band-mini-time">${b.estimatedTime}分</span>
+        <button type="button" class="band-mini-delete" data-index="${i}">✕</button>
+      </div>
+    `).join('');
   }
-}
 
-function wireTabSwitching(container, onSwitch) {
-  const tabBtns = container.querySelectorAll('.tab-btn');
-  tabBtns.forEach((btn) => {
-    // Remove old listeners by cloning
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
+  // --- Clear all ---
+  let confirmShown = false;
 
-    newBtn.addEventListener('click', () => {
-      const tab = newBtn.dataset.tab;
-      container.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-      newBtn.classList.add('active');
-      container.querySelector('#tab-manual').classList.toggle('hidden', tab !== 'manual');
-      container.querySelector('#tab-paste').classList.toggle('hidden', tab !== 'paste');
-      if (onSwitch) onSwitch(tab);
+  clearArea.querySelector('#clear-all-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (confirmShown) return;
+    confirmShown = true;
+
+    const btn = clearArea.querySelector('#clear-all-btn');
+    btn.classList.add('hidden');
+
+    const bar = document.createElement('div');
+    bar.className = 'clear-confirm-bar';
+    bar.innerHTML = `
+      <span class="clear-confirm-text">全て削除しますか？</span>
+      <button type="button" class="p-btn p-btn-danger p-btn-sm" id="confirm-yes">削除</button>
+      <button type="button" class="p-btn p-btn-sm" id="confirm-no">取消</button>
+    `;
+    clearArea.appendChild(bar);
+
+    bar.querySelector('#confirm-yes').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      appState.players = [];
+      appState.bands = [];
+      saveState('players', []);
+      saveState('bands', []);
+      renderPlayerChips();
+      refreshDropdowns();
+      renderBandList();
+      updateBadge();
+      bar.remove();
+      btn.classList.remove('hidden');
+      confirmShown = false;
+      onDataChanged();
+    });
+
+    bar.querySelector('#confirm-no').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      bar.remove();
+      btn.classList.remove('hidden');
+      confirmShown = false;
     });
   });
-}
 
-function readBandForm(form) {
-  const name = form.querySelector('#band-name').value.trim();
-  const time = parseInt(form.querySelector('#band-time').value, 10);
-
-  if (!name) return null;
-  if (!time || time <= 0) return null;
-
-  const members = PART_KEYS.map((key) => {
-    const sel = form.querySelector(`#part-${key}`);
-    return sel ? sel.value : 'n/a';
-  });
-
-  return { name, members, estimatedTime: time };
-}
-
-function showPasteErrors(el, errors) {
-  el.innerHTML = `
-    <div class="paste-error-box">
-      ${errors.map((e) => `<p class="error-line">${escapeHTML(e.message)}</p>`).join('')}
-    </div>
-  `;
-}
-
-function showPasteSuccess(el, bandCount, playerCount) {
-  el.innerHTML = `
-    <div class="paste-success-box">
-      <p>${bandCount}バンドを取り込みました。${playerCount > 0 ? `${playerCount}人の新しいメンバーを追加しました。` : ''}</p>
-    </div>
-  `;
-}
-
-function escapeHTML(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  // --- Initial render ---
+  renderPlayerChips();
+  refreshDropdowns();
+  renderBandList();
 }

@@ -12,32 +12,11 @@ const SLOT_VOCAL = 0;
 const SLOT_LEAD_GUITAR = 1;
 const SLOT_BACKING_GUITAR = 2;
 const SLOT_BASS = 3;
-const SLOT_DRUMS = 4;
 const SLOT_KEYBOARD = 5;
 
-const PART_NAMES = [
-  'Vocal',
-  'Lead Guitar',
-  'Backing Guitar',
-  'Bass',
-  'Drums',
-  'Keyboard',
-];
 
-/**
- * Default cost weights per instrument slot.
- * Index: [Vocal, Lead Guitar, Backing Guitar, Bass, Drums, Keyboard]
- * Vocal defaults to 0 (changes are free), others default to 1.
- */
 const DEFAULT_COST_WEIGHTS = [0, 1, 1, 1, 0, 1];
 
-/**
- * Compute the cost of a single slot transition.
- * @param {string} a - member in slot for band A
- * @param {string} b - member in slot for band B
- * @param {boolean} freeLeave - if true, person -> "n/a" costs 0
- * @returns {number} 0 or 1 (before weight is applied)
- */
 function slotCost(a, b, freeLeave) {
   if (a === b) return 0;
   if (freeLeave && a !== 'n/a' && b === 'n/a') return 0;
@@ -46,15 +25,6 @@ function slotCost(a, b, freeLeave) {
 
 /**
  * Compute transition cost between two consecutive bands.
- * Each slot's binary change (0/1) is multiplied by its cost weight.
- * When distinguishGuitar is false, guitar slots are interchangeable.
- *
- * @param {string[]} membersA - 6-element array of member names for band A
- * @param {string[]} membersB - 6-element array of member names for band B
- * @param {boolean} distinguishGuitar
- * @param {boolean} freeLeave
- * @param {number[]} [costWeights] - 6-element array of per-slot cost weights (0-3)
- * @returns {number}
  */
 export function transitionCost(membersA, membersB, distinguishGuitar, freeLeave, costWeights) {
   const w = costWeights || DEFAULT_COST_WEIGHTS;
@@ -65,11 +35,8 @@ export function transitionCost(membersA, membersB, distinguishGuitar, freeLeave,
       cost += slotCost(membersA[i], membersB[i], freeLeave) * w[i];
     }
   } else {
-    // Vocal
     cost += slotCost(membersA[SLOT_VOCAL], membersB[SLOT_VOCAL], freeLeave) * w[SLOT_VOCAL];
 
-    // Guitar slots are interchangeable — try both matchings, pick lower cost
-    // Use the max guitar weight for both slots when interchangeable
     const gw = Math.max(w[SLOT_LEAD_GUITAR], w[SLOT_BACKING_GUITAR]);
     const opt1 =
       slotCost(membersA[SLOT_LEAD_GUITAR], membersB[SLOT_LEAD_GUITAR], freeLeave) * gw +
@@ -79,7 +46,6 @@ export function transitionCost(membersA, membersB, distinguishGuitar, freeLeave,
       slotCost(membersA[SLOT_BACKING_GUITAR], membersB[SLOT_LEAD_GUITAR], freeLeave) * gw;
     cost += Math.min(opt1, opt2);
 
-    // Bass, Drums, Keyboard: normal comparison
     for (let i = SLOT_BASS; i <= SLOT_KEYBOARD; i++) {
       cost += slotCost(membersA[i], membersB[i], freeLeave) * w[i];
     }
@@ -88,11 +54,6 @@ export function transitionCost(membersA, membersB, distinguishGuitar, freeLeave,
   return cost;
 }
 
-/**
- * Popcount — count set bits in a 32-bit integer.
- * @param {number} n
- * @returns {number}
- */
 function popcount(n) {
   n = n - ((n >> 1) & 0x55555555);
   n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
@@ -102,24 +63,14 @@ function popcount(n) {
 /**
  * Solve the optimal ordering using Held-Karp bitmask DP.
  *
+ * Appearance span constraints are handled by converting them to
+ * playerAppearance (position window) constraints and running the
+ * core DP for each valid window placement.
+ *
  * @param {Array<{name: string, members: string[]}>} bands
- *   Array of band objects. Each has a `name` and a `members` array of length 6.
  * @param {Object} options
- * @param {boolean} options.distinguishGuitar - treat lead/backing guitar as separate (default true)
- * @param {boolean} options.freeLeave - person -> n/a costs 0 (default false)
- * @param {number[]} options.costWeights - 6-element array of per-slot cost weights (0-3)
- * @param {Object} options.constraints - optional placement constraints
- * @param {number|null} options.constraints.fixedLast - index of band fixed to last position
- * @param {Array<{bandIndex: number, maxPosition: number, requiredBefore: number[]}>} options.constraints.rules
- *   Custom constraint rules for band placement.
- * @param {Array<{bandIndex: number, exactPosition: number}>} options.constraints.fixedPositions
- *   Bands that must be placed at an exact position (1-indexed).
- * @param {Array<{before: number, after: number}>} options.constraints.bandOrdering
- *   Band ordering constraints: band `before` must appear before band `after`.
- * @param {Array<{player: string, position: number, mode: 'before'|'after'}>} options.constraints.playerAppearance
- *   Player appearance constraints: all bands with this player must be before/after position.
- * @param {number} [topK=3] - number of top results to return
- * @returns {Array<{path: number[], cost: number}>} top K results sorted by cost
+ * @param {number} [topK=3]
+ * @returns {Array<{path: number[], cost: number}>}
  */
 export function solve(bands, options = {}, topK = 3) {
   const {
@@ -137,26 +88,105 @@ export function solve(bands, options = {}, topK = 3) {
     playerAppearance = [],
     consecutiveLimit = null,
     bandAdjacency = [],
+    appearanceSpan = [],
   } = constraints;
 
   const n = bands.length;
 
-  // Determine which bands participate in the DP permutation
+  // ─── Appearance Span → Window Enumeration ────────────────────
+  // Convert each span rule into position-window constraints and
+  // run the core DP per window. Collect best results across all.
+  if (appearanceSpan.length > 0) {
+    const spanInfos = appearanceSpan.map((as) => {
+      let count = 0;
+      for (const band of bands) {
+        if (band.members.some((m) => m === as.player)) count++;
+      }
+      return { player: as.player, spanLimit: as.spanLimit, bandCount: count };
+    });
+
+    // Window start positions for each span rule
+    const windowRanges = spanInfos.map((si) => {
+      const positions = [];
+      for (let start = 1; start <= n - si.spanLimit + 1; start++) {
+        positions.push(start);
+      }
+      return positions;
+    });
+
+    // Cartesian product of window starts (capped for sanity)
+    const allResults = [];
+    const seenPaths = new Set();
+    let tried = 0;
+    const maxCombinations = 200;
+
+    function enumerate(idx, current) {
+      if (tried >= maxCombinations) return;
+      if (idx === windowRanges.length) {
+        tried++;
+
+        // Build extra playerAppearance constraints from windows
+        const extraPA = [];
+        for (let i = 0; i < spanInfos.length; i++) {
+          const start = current[i];
+          const end = start + spanInfos[i].spanLimit - 1;
+          extraPA.push({ player: spanInfos[i].player, position: start, mode: 'after' });
+          extraPA.push({ player: spanInfos[i].player, position: end, mode: 'before' });
+        }
+
+        try {
+          const subResults = solve(bands, {
+            distinguishGuitar, freeLeave, costWeights,
+            constraints: {
+              fixedLast, rules, fixedPositions, bandOrdering,
+              playerAppearance: [...playerAppearance, ...extraPA],
+              consecutiveLimit, bandAdjacency,
+              appearanceSpan: [],
+            },
+          }, topK);
+
+          for (const r of subResults) {
+            const key = r.path.join(',');
+            if (!seenPaths.has(key)) {
+              seenPaths.add(key);
+              allResults.push(r);
+            }
+          }
+        } catch {
+          // Window combination may conflict with other constraints — skip
+        }
+        return;
+      }
+
+      for (const val of windowRanges[idx]) {
+        current.push(val);
+        enumerate(idx + 1, current);
+        current.pop();
+        if (tried >= maxCombinations) return;
+      }
+    }
+
+    enumerate(0, []);
+    allResults.sort((a, b) => a.cost - b.cost);
+    return allResults.slice(0, topK);
+  }
+
+  // ─── Core Held-Karp DP ───────────────────────────────────────
+
   const permIndices = [];
   for (let i = 0; i < n; i++) {
     if (i !== fixedLast) permIndices.push(i);
   }
-  const pn = permIndices.length; // number of bands in permutation
+  const pn = permIndices.length;
 
   if (pn > 20) {
     throw new Error(`Too many bands for bitmask DP (${pn}). Max supported is 20.`);
   }
 
-  // Map global band index -> local DP index
   const globalToLocal = new Map();
   permIndices.forEach((gi, li) => globalToLocal.set(gi, li));
 
-  // Pre-build local constraint lookup from legacy rules
+  // Local constraint mappings
   const localRules = rules
     .filter((r) => globalToLocal.has(r.bandIndex))
     .map((r) => ({
@@ -168,7 +198,6 @@ export function solve(bands, options = {}, topK = 3) {
         .map((gi) => globalToLocal.get(gi)),
     }));
 
-  // Build local fixed-position constraints
   const localFixedPositions = fixedPositions
     .filter((fp) => globalToLocal.has(fp.bandIndex))
     .map((fp) => ({
@@ -176,7 +205,6 @@ export function solve(bands, options = {}, topK = 3) {
       position: fp.exactPosition,
     }));
 
-  // Build local band-ordering constraints
   const localBandOrdering = bandOrdering
     .filter((bo) => globalToLocal.has(bo.before) && globalToLocal.has(bo.after))
     .map((bo) => ({
@@ -184,7 +212,6 @@ export function solve(bands, options = {}, topK = 3) {
       after: globalToLocal.get(bo.after),
     }));
 
-  // Resolve player appearance constraints to band indices
   const localPlayerAppearance = [];
   for (const pa of playerAppearance) {
     const bandIndices = [];
@@ -203,7 +230,6 @@ export function solve(bands, options = {}, topK = 3) {
     }
   }
 
-  // Build local band-adjacency constraints
   const localBandAdjacency = bandAdjacency
     .filter((ba) => globalToLocal.has(ba.before) && globalToLocal.has(ba.after))
     .map((ba) => ({
@@ -244,7 +270,7 @@ export function solve(bands, options = {}, topK = 3) {
     );
   }
 
-  // Pre-compute cost matrix (local indices)
+  // Cost matrix
   const costMatrix = Array.from({ length: pn }, () => new Int32Array(pn));
   for (let i = 0; i < pn; i++) {
     for (let j = 0; j < pn; j++) {
@@ -252,15 +278,12 @@ export function solve(bands, options = {}, topK = 3) {
         costMatrix[i][j] = transitionCost(
           bands[permIndices[i]].members,
           bands[permIndices[j]].members,
-          distinguishGuitar,
-          freeLeave,
-          costWeights,
+          distinguishGuitar, freeLeave, costWeights,
         );
       }
     }
   }
 
-  // Cost to fixed-last band (if any)
   let costToFixed = null;
   if (fixedLast !== null) {
     costToFixed = new Int32Array(pn);
@@ -268,58 +291,44 @@ export function solve(bands, options = {}, topK = 3) {
       costToFixed[i] = transitionCost(
         bands[permIndices[i]].members,
         bands[fixedLast].members,
-        distinguishGuitar,
-        freeLeave,
-        costWeights,
+        distinguishGuitar, freeLeave, costWeights,
       );
     }
   }
 
-  // Bitmask DP
+  // DP arrays
   const INF = 0x7fffffff;
   const states = 1 << pn;
   const fullMask = states - 1;
-
-  // Use flat arrays for better performance: dp[last * states + mask]
   const dp = new Int32Array(pn * states).fill(INF);
   const parent = new Int32Array(pn * states).fill(-1);
 
-  // Check if a band can be placed as the very first band (position 1)
   function canStartWith(localIdx) {
-    // Legacy rules: needs something before it, or minPosition > 1
     for (const rule of localRules) {
       if (rule.localIndex === localIdx) {
         if (rule.requiredBefore.length > 0) return false;
         if (rule.minPosition && 1 < rule.minPosition) return false;
       }
     }
-    // Fixed position: must be at position 1
     for (const fp of localFixedPositions) {
       if (fp.localIndex === localIdx && fp.position !== 1) return false;
       if (fp.localIndex !== localIdx && fp.position === 1) return false;
     }
-    // Band ordering: if this band must come after another, can't be first
     for (const bo of localBandOrdering) {
       if (bo.after === localIdx) return false;
     }
-    // Player appearance 'after': if bands with player must be after pos X and X > 1,
-    // this band can still be first (pos 1 < X is fine for 'after' only if pos >= X)
     for (const pa of localPlayerAppearance) {
       if (pa.mode === 'after' && pa.localBands.includes(localIdx) && 1 < pa.position) {
         return false;
       }
     }
-    // Band adjacency: if this band must have a predecessor, can't start first
     for (const adj of localBandAdjacency) {
       if (adj.after === localIdx) return false;
     }
     return true;
   }
 
-  // Check if placing `nxt` at position `pos` (1-indexed) with current `mask` is valid
-  // `last` is the local index of the previously placed band (-1 if first)
   function canPlace(nxt, mask, pos, last) {
-    // Legacy rules
     for (const rule of localRules) {
       if (rule.localIndex !== nxt) continue;
       if (rule.maxPosition && pos > rule.maxPosition) return false;
@@ -333,32 +342,26 @@ export function solve(bands, options = {}, topK = 3) {
       }
     }
 
-    // Fixed position: this band must be at exactPosition
     for (const fp of localFixedPositions) {
       if (fp.localIndex === nxt && fp.position !== pos) return false;
       if (fp.localIndex !== nxt && fp.position === pos) return false;
     }
 
-    // Band ordering: band `before` must already be placed before band `after`
     for (const bo of localBandOrdering) {
       if (bo.after === nxt && !(mask & (1 << bo.before))) return false;
     }
 
-    // Player appearance constraints
     for (const pa of localPlayerAppearance) {
       if (!pa.localBands.includes(nxt)) continue;
       if (pa.mode === 'before' && pos > pa.position) return false;
       if (pa.mode === 'after' && pos < pa.position) return false;
     }
 
-    // Consecutive limit (K=1): no shared members between adjacent bands
     if (sharesMember && last >= 0 && sharesMember[last][nxt]) {
       return false;
     }
 
-    // Consecutive limit (K>=2): walk back through parent chain to check runs
     if (bandMemberSets && consecutiveLimit >= 2) {
-      // Build window: [nxt, last, prev, prev-prev, ...] up to consecutiveLimit+1 bands
       const win = [nxt];
       let curBand = last;
       let curMask = mask;
@@ -370,7 +373,6 @@ export function solve(bands, options = {}, topK = 3) {
         curMask ^= (1 << curBand);
         curBand = prev;
       }
-      // Only check if window is full (enough bands to violate the limit)
       if (win.length === consecutiveLimit + 1) {
         const first = bandMemberSets[win[0]];
         for (const m of first) {
@@ -383,11 +385,8 @@ export function solve(bands, options = {}, topK = 3) {
       }
     }
 
-    // Band adjacency: enforce immediate predecessor/successor pairs
     for (const adj of localBandAdjacency) {
-      // If placing the "after" band, the previous must be "before"
       if (adj.after === nxt && last !== adj.before) return false;
-      // If the previous band is "before", next must be "after"
       if (adj.before === last && nxt !== adj.after) return false;
     }
 
@@ -400,7 +399,7 @@ export function solve(bands, options = {}, topK = 3) {
     dp[i * states + (1 << i)] = 0;
   }
 
-  // Main DP loop
+  // Main DP
   for (let mask = 1; mask < states; mask++) {
     for (let last = 0; last < pn; last++) {
       const idx = last * states + mask;
@@ -411,8 +410,7 @@ export function solve(bands, options = {}, topK = 3) {
       const nextPos = popcount(mask) + 1;
 
       for (let nxt = 0; nxt < pn; nxt++) {
-        if (mask & (1 << nxt)) continue; // already placed
-
+        if (mask & (1 << nxt)) continue;
         if (!canPlace(nxt, mask, nextPos, last)) continue;
 
         const newMask = mask | (1 << nxt);
@@ -426,7 +424,7 @@ export function solve(bands, options = {}, topK = 3) {
     }
   }
 
-  // Collect top K results
+  // Collect and reconstruct
   const candidates = [];
   for (let last = 0; last < pn; last++) {
     const idx = last * states + fullMask;
@@ -435,20 +433,16 @@ export function solve(bands, options = {}, topK = 3) {
     candidates.push({ last, cost: total });
   }
 
-  if (candidates.length === 0) {
-    return [];
-  }
+  if (candidates.length === 0) return [];
 
   candidates.sort((a, b) => a.cost - b.cost);
 
-  // Reconstruct paths for top K
   const results = [];
   const seen = new Set();
 
   for (const candidate of candidates) {
     if (results.length >= topK) break;
 
-    // Reconstruct path
     const pathLocal = [];
     let mask = fullMask;
     let cur = candidate.last;
@@ -460,7 +454,6 @@ export function solve(bands, options = {}, topK = 3) {
     }
     pathLocal.reverse();
 
-    // Convert to global indices
     const pathGlobal = pathLocal.map((li) => permIndices[li]);
     if (fixedLast !== null) pathGlobal.push(fixedLast);
 
@@ -481,10 +474,8 @@ export function solve(bands, options = {}, topK = 3) {
 
 /**
  * Check if a path satisfies the consecutive performance limit.
- * Returns true if no member appears in more than `limit` consecutive bands.
  */
 function checkConsecutiveLimit(path, bands, limit) {
-  // Track each member's current consecutive run length
   const memberConsec = new Map();
 
   for (let i = 0; i < path.length; i++) {
@@ -511,13 +502,6 @@ function checkConsecutiveLimit(path, bands, limit) {
 
 /**
  * Compute detailed per-row transition costs for a given path.
- *
- * @param {Array<{name: string, members: string[]}>} bands
- * @param {number[]} path - ordered band indices
- * @param {boolean} distinguishGuitar
- * @param {boolean} freeLeave
- * @param {number[]} [costWeights] - per-slot cost weights
- * @returns {Array<{bandIndex: number, name: string, members: string[], cost: number|null}>}
  */
 export function computeScheduleDetails(bands, path, distinguishGuitar, freeLeave, costWeights) {
   return path.map((bandIdx, i) => {
@@ -528,9 +512,7 @@ export function computeScheduleDetails(bands, path, distinguishGuitar, freeLeave
         : transitionCost(
             bands[path[i - 1]].members,
             band.members,
-            distinguishGuitar,
-            freeLeave,
-            costWeights,
+            distinguishGuitar, freeLeave, costWeights,
           );
     return {
       bandIndex: bandIdx,
@@ -541,4 +523,4 @@ export function computeScheduleDetails(bands, path, distinguishGuitar, freeLeave
   });
 }
 
-export { PART_NAMES, DEFAULT_COST_WEIGHTS };
+export { DEFAULT_COST_WEIGHTS };
