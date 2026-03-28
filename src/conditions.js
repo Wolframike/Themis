@@ -47,8 +47,9 @@ export function initConditionsPanel(container, appState, onConditionsChanged, on
         <label class="p-toggle-wrap">
           <input type="checkbox" class="p-toggle-input" id="distinguish-guitar" ${appState.distinguishGuitar ? 'checked' : ''} />
           <span class="p-toggle-track"></span>
-          <span class="p-toggle-text">ギターを区別する</span>
+          <span class="p-toggle-text">リードとバッキングを区別する</span>
         </label>
+        <div class="p-help" style="margin-top:0.3rem">OFFにすると、同じギタリストがL.Gt⇔B.Gtを入れ替えても転換コスト0になります</div>
       </div>
     </div>
   `;

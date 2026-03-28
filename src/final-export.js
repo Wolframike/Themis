@@ -422,17 +422,73 @@ function renderTimetableImage(schedule, breaks, bands, timing, totalCost, allPla
   const dpr = 2; // Retina
   const padX = 32;
   const padY = 28;
-  const rowH = 56;
+  const baseRowH = 56;
   const breakH = 28;
   const headerH = 52;
   const footerH = 36;
   const colTime = 110;
-  const colName = 160;
-  const colMembers = 260;
+  const colName = 180;
+  const colMembers = 280;
   const w = padX * 2 + colTime + colName + colMembers;
 
+  // Pre-measure: need a temp canvas to measure text for row heights
+  const measureCanvas = document.createElement('canvas');
+  const mctx = measureCanvas.getContext('2d');
+
+  function wrapText(ctx, text, maxWidth, font) {
+    ctx.font = font;
+    // If it fits in one line, done
+    if (ctx.measureText(text).width <= maxWidth) return [text];
+
+    const hasSpaces = text.includes(' ');
+
+    if (hasSpaces) {
+      // Word-wrap: break at spaces
+      const tokens = text.split(' ');
+      const lines = [];
+      let current = tokens[0];
+      for (let i = 1; i < tokens.length; i++) {
+        const test = current + ' ' + tokens[i];
+        if (ctx.measureText(test).width > maxWidth) {
+          lines.push(current);
+          current = tokens[i];
+        } else {
+          current = test;
+        }
+      }
+      if (current) lines.push(current);
+      return lines;
+    }
+
+    // No spaces (CJK etc): break by character
+    const lines = [];
+    let current = '';
+    for (const ch of text) {
+      if (ctx.measureText(current + ch).width > maxWidth && current.length > 0) {
+        lines.push(current);
+        current = ch;
+      } else {
+        current += ch;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  const nameFont = '600 12px Outfit, Noto Sans JP, sans-serif';
+  const nameMaxW = colName - 16;
+
+  // Calculate per-row heights
+  const rowHeights = rows.map((r) => {
+    if (r.isBreak) return breakH;
+    const lines = wrapText(mctx, r.name, nameMaxW, nameFont);
+    const nameH = lines.length * 15;
+    const memberH = 32; // 2 lines of members
+    return Math.max(baseRowH, nameH + memberH + 12);
+  });
+
   let contentH = headerH;
-  for (const r of rows) contentH += r.isBreak ? breakH : rowH;
+  for (const rh of rowHeights) contentH += rh;
   contentH += footerH;
   const h = padY * 2 + contentH;
 
@@ -508,17 +564,19 @@ function renderTimetableImage(schedule, breaks, bands, timing, totalCost, allPla
       continue;
     }
 
+    const thisRowH = rowHeights[i];
+
     // Alternating row background
     const bandRowIdx = rows.slice(0, i).filter((r) => !r.isBreak).length;
     ctx.fillStyle = bandRowIdx % 2 === 0 ? bg2 : bg0;
-    ctx.fillRect(padX, y, w - padX * 2, rowH);
+    ctx.fillRect(padX, y, w - padX * 2, thisRowH);
 
     // Subtle bottom border
     ctx.strokeStyle = border;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
-    ctx.moveTo(padX, y + rowH);
-    ctx.lineTo(w - padX, y + rowH);
+    ctx.moveTo(padX, y + thisRowH);
+    ctx.lineTo(w - padX, y + thisRowH);
     ctx.stroke();
 
     // Time
@@ -529,14 +587,18 @@ function renderTimetableImage(schedule, breaks, bands, timing, totalCost, allPla
     ctx.font = '400 9px JetBrains Mono, monospace';
     ctx.fillText(`〜${row.end}`, padX + 8, y + 32);
 
-    // Band name
+    // Band name — wrap if too wide
+    const nameLines = wrapText(ctx, row.name, nameMaxW, nameFont);
     ctx.fillStyle = text0;
-    ctx.font = '600 12px Outfit, Noto Sans JP, sans-serif';
-    ctx.fillText(row.name, padX + colTime + 8, y + 18);
+    ctx.font = nameFont;
+    nameLines.forEach((line, li) => {
+      ctx.fillText(line, padX + colTime + 8, y + 16 + li * 15);
+    });
 
+    const nameBottomY = 16 + nameLines.length * 15;
     ctx.fillStyle = text2;
     ctx.font = '400 8px JetBrains Mono, monospace';
-    ctx.fillText(`${row.perfTime}min`, padX + colTime + 8, y + 32);
+    ctx.fillText(`${row.perfTime}min`, padX + colTime + 8, y + nameBottomY + 2);
 
     // Members — 2 lines, "Part:Name" pairs
     const mx = padX + colTime + colName + 8;
@@ -561,7 +623,7 @@ function renderTimetableImage(schedule, breaks, bands, timing, totalCost, allPla
       }
     });
 
-    y += rowH;
+    y += thisRowH;
   }
 
   // --- Footer ---

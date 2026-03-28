@@ -342,8 +342,15 @@ export function initDataPanel(container, appState, onDataChanged) {
       ev.stopPropagation();
       appState.players = [];
       appState.bands = [];
+      appState.rules = [];
+      appState.breaks = [];
+      appState.results = null;
+      appState.schedule = null;
+      appState.selectedResultIndex = 0;
       saveState('players', []);
       saveState('bands', []);
+      saveState('rules', []);
+      saveState('breaks', []);
       renderPlayerChips();
       refreshDropdowns();
       renderBandList();
