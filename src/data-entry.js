@@ -46,7 +46,7 @@ export function initDataPanel(container, appState, onDataChanged) {
         </div>
         <div class="p-row">
           <textarea class="p-textarea" id="paste-input" rows="3" placeholder="King Gnu&#9;井口&#9;常田&#9;n/a&#9;新井&#9;勢喜&#9;井口&#9;20分"></textarea>
-          <div class="p-help">時間の数値はすべて「分」として扱います</div>
+          <div class="p-help">スプレッドシートからコピーするか、タブ区切りで入力（バンド名 / Vo. / L.Gt / B.Gt / Ba. / Dr. / Key. / 時間）<br>メンバー名にスペース不可・時間の数値はすべて「分」として扱います</div>
         </div>
         <div id="paste-feedback"></div>
       </div>
