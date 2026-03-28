@@ -5,29 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Themis — タイムテーブル最適化</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-R7J6Y2RPVJ"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-R7J6Y2RPVJ');
-    </script>
-    <script type="module" crossorigin src="./assets/index-L8HJ731n.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CoPLYdjp.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="./assets/index-C20KzP8K.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BttDKeMv.css">
   </head>
   <body>
-    <div id="app">
-      <img src="./favicon.svg" alt="Themis" class="page-logo" />
-      <header class="app-header">
-        <p class="app-subtitle">タイムテーブルメーカー</p>
-        <div class="theme-switcher" id="theme-switcher">
-          <button type="button" class="theme-btn" data-theme="dark">Dark</button>
-          <button type="button" class="theme-btn" data-theme="light">Light</button>
-          <button type="button" class="theme-btn" data-theme="cyber">Cyber</button>
+    <div class="layout">
+      <!-- TOP BAR -->
+      <header class="topbar">
+        <div class="topbar-brand">
+          <span class="topbar-logo">Themis</span>
+          <span class="topbar-sep">/</span>
+          <span class="topbar-page">タイムテーブル最適化</span>
+        </div>
+        <div class="topbar-actions">
+          <div class="theme-pill" id="theme-switcher">
+            <button type="button" class="theme-btn" data-theme="dark">dark</button>
+            <button type="button" class="theme-btn" data-theme="light">light</button>
+          </div>
         </div>
       </header>
-      <main class="app-main"></main>
+
+      <!-- LEFT PANEL: Config -->
+      <nav class="left-panel" id="left-panel"></nav>
+
+      <!-- Resize handle: left -->
+      <div class="resize-handle resize-handle-left" id="resize-left"></div>
+
+      <!-- CENTER PANEL: Timeline -->
+      <section class="center-panel" id="center-panel">
+        <div class="center-inner">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-icon">⚖</div>
+            <div class="empty-title">バンドデータを入力してください</div>
+            <div class="empty-desc">左パネルの「バンドデータ」にスプレッドシートからデータを貼り付けるか、手動で入力してください。</div>
+          </div>
+          <div class="timeline-container hidden" id="timeline-container">
+            <div class="timeline-header">
+              <div class="timeline-title">
+                <span class="dot"></span>
+                Timeline
+              </div>
+              <div class="timeline-controls" id="timeline-controls"></div>
+            </div>
+            <div class="timeline-body" id="timeline-body"></div>
+          </div>
+        </div>
+        <!-- Optimize floating bar -->
+        <div class="optimize-bar hidden" id="optimize-bar">
+          <div class="optimize-status" id="optimize-status"></div>
+          <button type="button" class="optimize-btn" id="optimize-btn">最適化を実行</button>
+        </div>
+      </section>
+
+      <!-- Resize handle: right -->
+      <div class="resize-handle resize-handle-right" id="resize-right"></div>
+
+      <!-- RIGHT PANEL: Stats -->
+      <aside class="right-panel" id="right-panel"></aside>
     </div>
+    <div class="toast-container" id="toast-container"></div>
   </body>
 </html>
